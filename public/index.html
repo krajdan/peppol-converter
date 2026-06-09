@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PDF → PEPPOL BIS 3.0 Converter</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --bg:      #0d1117;
+  --surface: #161b22;
+  --surface2:#1c2128;
+  --border:  #30363d;
+  --accent:  #238636;
+  --accentH: #2ea043;
+  --blue:    #1f6feb;
+  --blueH:   #388bfd;
+  --warn:    #d29922;
+  --danger:  #da3633;
+  --text:    #e6edf3;
+  --muted:   #8b949e;
+  --code:    #010409;
+  --purple:  #8957e5;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+.mono { font-family: 'JetBrains Mono', monospace; }
+
+/* HEADER */
+.hdr {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 28px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky; top: 0; z-index: 100;
+}
+.logo { display:flex; align-items:center; gap:10px; font-weight:700; font-size:15px; letter-spacing:-0.02em; }
+.chip { font-size:10px; font-weight:700; padding:2px 8px; border-radius:20px; font-family:'JetBrains Mono',monospace; letter-spacing:0.05em; }
+.chip-ai { background: linear-gradient(135deg,#8957e5,#1f6feb); color:#fff; }
+.chip-peppol { background: var(--accent); color:#fff; }
+
+/* MAIN LAYOUT */
+.layout { display:grid; grid-template-columns:420px 1fr; height:calc(100vh - 56px); }
+
+/* LEFT PANEL */
+.left-panel { border-right:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; }
+
+/* DROP ZONE */
+.dropzone {
+  margin:20px;
+  border:2px dashed var(--border);
+  border-radius:12px;
+  padding:36px 20px;
+  text-align:center;
+  cursor:pointer;
+  transition:all 0.2s;
+  position:relative;
+  background:var(--surface2);
+}
+.dropzone:hover, .dropzone.drag-over {
+  border-color:var(--blue);
+  background:rgba(31,111,235,0.05);
+}
+.dropzone input { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
+.drop-icon { font-size:40px; margin-bottom:12px; display:block; }
+.drop-title { font-size:15px; font-weight:600; color:var(--text); margin-bottom:4px; }
+.drop-sub { font-size:12px; color:var(--muted); }
+
+/* PDF Preview */
+.pdf-preview {
+  margin:0 20px 20px;
+  border:1px solid var(--border);
+  border-radius:8px;
+  overflow:hidden;
+  background:var(--code);
+  flex:1;
+  display:flex;
+  flex-direction:column;
+}
+.pdf-thumb { width:100%; object-fit:contain; max-height:280px; border-bottom:1px solid var(--border); }
+.pdf-meta { padding:12px 14px; font-size:12px; display:flex; flex-direction:column; gap:4px; }
+.pdf-meta-row { display:flex; justify-content:space-between; }
+.pdf-meta-key { color:var(--muted); }
+.pdf-meta-val { color:var(--text); font-family:'JetBrains Mono',monospace; font-size:11px; }
+
+/* Extracted text area */
+.extracted-text {
+  margin:0 20px 20px;
+  border:1px solid var(--border);
+  border-radius:8px;
+  background:var(--code);
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;
+  line-height:1.6;
+  color:#79c0ff;
+  padding:12px;
+  overflow:auto;
+  flex:1;
+  max-height:220px;
+  display:none;
+  white-space:pre-wrap;
+}
+
+/* CONVERT BUTTON */
+.convert-btn {
+  margin:0 20px 20px;
+  padding:14px;
+  background:linear-gradient(135deg, #8957e5, #1f6feb);
+  border:none;
+  border-radius:8px;
+  color:#fff;
+  font-size:14px;
+  font-weight:700;
+  cursor:pointer;
+  font-family:'Inter',sans-serif;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  transition:all 0.2s;
+  letter-spacing:-0.01em;
+}
+.convert-btn:hover { opacity:0.9; transform:translateY(-1px); box-shadow:0 4px 20px rgba(137,87,229,0.3); }
+.convert-btn:disabled { opacity:0.4; cursor:not-allowed; transform:none; box-shadow:none; }
+
+/* RIGHT PANEL */
+.right-panel { display:flex; flex-direction:column; overflow:hidden; }
+
+/* STAGE INDICATOR */
+.stages {
+  display:flex;
+  align-items:center;
+  padding:14px 24px;
+  gap:8px;
+  border-bottom:1px solid var(--border);
+  background:var(--surface);
+  overflow:auto;
+}
+.stage {
+  display:flex;
+  align-items:center;
+  gap:6px;
+  padding:5px 12px;
+  border-radius:20px;
+  font-size:12px;
+  font-weight:500;
+  white-space:nowrap;
+  transition:all 0.3s;
+}
+.stage-num { width:20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; font-family:'JetBrains Mono',monospace; }
+.stage.pending { color:var(--muted); }
+.stage.pending .stage-num { background:var(--border); color:var(--muted); }
+.stage.active { color:var(--blue); background:rgba(31,111,235,0.1); border:1px solid rgba(31,111,235,0.3); }
+.stage.active .stage-num { background:var(--blue); color:#fff; }
+.stage.done { color:#7ee787; }
+.stage.done .stage-num { background:var(--accent); color:#fff; }
+.stage.error { color:#ff7b72; }
+.stage.error .stage-num { background:var(--danger); color:#fff; }
+.stage-arrow { color:var(--border); font-size:14px; }
+
+/* MAIN OUTPUT AREA */
+.output-area { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+
+/* TABS */
+.out-tabs { display:flex; gap:2px; padding:0 24px; border-bottom:1px solid var(--border); background:var(--code); }
+.out-tab { padding:10px 14px; font-size:12px; font-weight:500; color:var(--muted); cursor:pointer; border:none; background:none; border-bottom:2px solid transparent; transition:all 0.15s; font-family:'Inter',sans-serif; }
+.out-tab:hover { color:var(--text); }
+.out-tab.active { color:var(--text); border-bottom-color:var(--accent); }
+
+.out-panel { display:none; flex:1; overflow:auto; }
+.out-panel.active { display:flex; flex-direction:column; }
+
+/* AI THINKING STREAM */
+.thinking-area {
+  flex:1;
+  padding:20px 24px;
+  font-size:13px;
+  line-height:1.8;
+  overflow:auto;
+}
+.thinking-msg { margin-bottom:10px; display:flex; gap:10px; align-items:flex-start; }
+.thinking-icon { width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; flex-shrink:0; margin-top:1px; }
+.thinking-icon.ai { background:linear-gradient(135deg,#8957e5,#1f6feb); }
+.thinking-icon.sys { background:var(--border); }
+.thinking-icon.ok { background:var(--accent); }
+.thinking-icon.err { background:var(--danger); }
+.thinking-text { flex:1; color:var(--text); }
+.thinking-text.muted { color:var(--muted); }
+
+.spinner { display:inline-block; width:14px; height:14px; border:2px solid rgba(31,111,235,0.3); border-top-color:var(--blue); border-radius:50%; animation:spin 0.8s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* XML CODE VIEWER */
+.xml-viewer {
+  flex:1;
+  background:var(--code);
+  font-family:'JetBrains Mono',monospace;
+  font-size:12px;
+  line-height:1.7;
+  padding:20px 24px;
+  overflow:auto;
+  white-space:pre;
+  color:var(--text);
+}
+.xml-tag   { color:#7ee787; }
+.xml-attr  { color:#79c0ff; }
+.xml-val   { color:#a5d6ff; }
+.xml-cmt   { color:#8b949e; font-style:italic; }
+.xml-text  { color:#ffa657; }
+
+/* FIELD REVIEW TABLE */
+.field-table { padding:20px 24px; overflow:auto; }
+.ft-row {
+  display:grid;
+  grid-template-columns:100px 160px 1fr 80px;
+  gap:12px;
+  padding:8px 10px;
+  border-bottom:1px solid rgba(48,54,61,0.5);
+  font-size:12px;
+  align-items:center;
+}
+.ft-header { font-weight:700; font-size:11px; text-transform:uppercase; letter-spacing:0.06em; color:var(--muted); background:var(--surface2); border-radius:6px 6px 0 0; }
+.ft-bt { font-family:'JetBrains Mono',monospace; color:var(--blue); font-size:11px; }
+.ft-name { color:var(--muted); }
+.ft-val { font-family:'JetBrains Mono',monospace; color:var(--text); word-break:break-all; }
+.ft-conf { text-align:center; }
+
+.conf-hi { color:#7ee787; }
+.conf-md { color:#e3b341; }
+.conf-lo { color:#ff7b72; }
+
+/* BOTTOM BAR */
+.bottom-bar {
+  padding:12px 24px;
+  border-top:1px solid var(--border);
+  background:var(--surface);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.btn { display:inline-flex; align-items:center; gap:6px; padding:8px 16px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; border:none; transition:all 0.15s; font-family:'Inter',sans-serif; }
+.btn-green { background:var(--accent); color:#fff; }
+.btn-green:hover { background:var(--accentH); }
+.btn-ghost { background:transparent; color:var(--text); border:1px solid var(--border); }
+.btn-ghost:hover { background:rgba(255,255,255,0.05); }
+.btn:disabled { opacity:0.4; cursor:not-allowed; }
+
+/* CONFIDENCE BADGE */
+.conf-badge {
+  padding:3px 10px;
+  border-radius:12px;
+  font-size:11px;
+  font-weight:700;
+  font-family:'JetBrains Mono',monospace;
+}
+.conf-badge.hi { background:rgba(35,134,54,0.2); color:#7ee787; border:1px solid rgba(35,134,54,0.4); }
+.conf-badge.md { background:rgba(210,153,34,0.2); color:#e3b341; border:1px solid rgba(210,153,34,0.4); }
+.conf-badge.lo { background:rgba(218,54,51,0.2); color:#ff7b72; border:1px solid rgba(218,54,51,0.4); }
+
+/* EMPTY STATE */
+.empty-state { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; color:var(--muted); gap:12px; padding:40px; text-align:center; }
+.empty-big { font-size:48px; opacity:0.3; }
+
+/* PROGRESS BAR */
+.pbar { height:2px; background:var(--border); }
+.pfill { height:100%; background:linear-gradient(90deg,#8957e5,#1f6feb); transition:width 0.4s ease; }
+
+@keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+.fade-in { animation:fadeIn 0.3s ease forwards; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="hdr">
+  <div class="logo">
+    <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+      <rect x="1" y="1" width="9" height="12" rx="2" fill="#da3633" opacity="0.8"/>
+      <rect x="1" y="1" width="9" height="12" rx="2" stroke="#ff7b72" stroke-width="0.5"/>
+      <path d="M4 5h3M4 8h3M4 11h2" stroke="#ff7b72" stroke-width="1" stroke-linecap="round"/>
+      <path d="M13 11 L21 11 L17 6 Z" fill="none" stroke="#8b949e" stroke-width="1.2"/>
+      <rect x="13" y="11" width="8" height="10" rx="1.5" fill="#238636" opacity="0.9"/>
+      <path d="M15 14h4M15 17h2" stroke="#7ee787" stroke-width="1" stroke-linecap="round"/>
+    </svg>
+    PDF → PEPPOL Converter
+    <span class="chip chip-ai">AI-POWERED</span>
+    <span class="chip chip-peppol">BIS 3.0</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:16px;">
+    <span class="mono" style="font-size:11px;color:var(--muted);">Claude Sonnet · Vision + XML</span>
+  </div>
+</header>
+
+<div class="pbar"><div class="pfill" id="pbar" style="width:0%"></div></div>
+
+<!-- LAYOUT -->
+<div class="layout">
+
+  <!-- LEFT: UPLOAD + CONTROLS -->
+  <div class="left-panel">
+
+    <!-- DROP ZONE -->
+    <div class="dropzone" id="dropzone" ondrop="handleDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+      <input type="file" accept=".pdf,image/png,image/jpeg,image/jpg" onchange="handleFile(event)">
+      <span class="drop-icon" id="dropIcon">📄</span>
+      <div class="drop-title" id="dropTitle">Dra och släpp faktura här</div>
+      <div class="drop-sub" id="dropSub">PDF, PNG, JPG — faktura på valfritt format</div>
+    </div>
+
+    <!-- PDF / Image preview -->
+    <div class="pdf-preview" id="pdfPreviewCard" style="display:none;">
+      <img id="pdfThumb" class="pdf-thumb" alt="Faktura förhandsgranskning">
+      <div class="pdf-meta" id="pdfMeta"></div>
+    </div>
+
+    <!-- Extracted raw text -->
+    <div class="extracted-text" id="extractedText"></div>
+
+    <!-- Settings -->
+    <div style="margin:0 20px 12px;display:flex;flex-direction:column;gap:8px;">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);">Inställningar</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div>
+          <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px;">Valuta (om ej funnen)</label>
+          <select id="fallbackCurrency" style="background:var(--code);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:5px;font-size:12px;width:100%;font-family:inherit;">
+            <option value="SEK">SEK</option><option value="EUR">EUR</option>
+            <option value="NOK">NOK</option><option value="DKK">DKK</option>
+            <option value="USD">USD</option><option value="GBP">GBP</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px;">Säljarland (default)</label>
+          <select id="fallbackCountry" style="background:var(--code);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:5px;font-size:12px;width:100%;font-family:inherit;">
+            <option value="SE">SE</option><option value="NO">NO</option>
+            <option value="DK">DK</option><option value="FI">FI</option>
+            <option value="DE">DE</option><option value="GB">GB</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(137,87,229,0.08);border:1px solid rgba(137,87,229,0.3);border-radius:6px;">
+        <input type="checkbox" id="strictMode" style="width:14px;height:14px;accent-color:var(--purple);">
+        <label for="strictMode" style="font-size:11px;color:var(--muted);cursor:pointer;">Strict mode — markera osäkra fält</label>
+      </div>
+    </div>
+
+    <!-- CONVERT BUTTON -->
+    <button class="convert-btn" id="convertBtn" onclick="startConversion()" disabled>
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path d="M2 8a6 6 0 0 1 6-6 6 6 0 0 1 4.24 1.76" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M14 8a6 6 0 0 1-6 6 6 6 0 0 1-4.24-1.76" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M12 2l2.24 1.76L12 5.52" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M4 14L1.76 12.24 4 10.48" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Konvertera till PEPPOL XML
+    </button>
+
+  </div>
+
+  <!-- RIGHT: OUTPUT -->
+  <div class="right-panel">
+
+    <!-- STAGE INDICATOR -->
+    <div class="stages">
+      <div class="stage pending" id="stage-upload">
+        <span class="stage-num">1</span> Ladda upp
+      </div>
+      <span class="stage-arrow">›</span>
+      <div class="stage pending" id="stage-vision">
+        <span class="stage-num">2</span> AI läser faktura
+      </div>
+      <span class="stage-arrow">›</span>
+      <div class="stage pending" id="stage-extract">
+        <span class="stage-num">3</span> Extraherar fält
+      </div>
+      <span class="stage-arrow">›</span>
+      <div class="stage pending" id="stage-build">
+        <span class="stage-num">4</span> Bygger PEPPOL XML
+      </div>
+      <span class="stage-arrow">›</span>
+      <div class="stage pending" id="stage-done">
+        <span class="stage-num">5</span> Klar
+      </div>
+    </div>
+
+    <!-- OUTPUT TABS -->
+    <div class="out-tabs">
+      <button class="out-tab active" onclick="switchOut('ai')">🤖 AI-analys</button>
+      <button class="out-tab" onclick="switchOut('fields')">📋 Extraherade fält</button>
+      <button class="out-tab" onclick="switchOut('xml')">📄 PEPPOL XML</button>
+    </div>
+
+    <!-- AI THINKING PANEL -->
+    <div class="out-panel active" id="out-ai">
+      <div class="thinking-area" id="thinkingArea">
+        <div class="empty-state">
+          <div class="empty-big">🤖</div>
+          <div style="font-size:15px;font-weight:600;color:var(--text);">AI-konverteraren väntar</div>
+          <div style="font-size:13px;">Ladda upp en PDF- eller bildfaktura<br>så tolkar Claude innehållet automatiskt.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FIELD REVIEW PANEL -->
+    <div class="out-panel" id="out-fields">
+      <div class="field-table" id="fieldTable">
+        <div class="empty-state"><div class="empty-big">📋</div><div>Konvertera en faktura för att se extraherade fält</div></div>
+      </div>
+    </div>
+
+    <!-- XML PANEL -->
+    <div class="out-panel" id="out-xml">
+      <div class="xml-viewer" id="xmlViewer">
+        <span style="color:var(--muted);">// XML genereras efter konvertering</span>
+      </div>
+    </div>
+
+    <!-- BOTTOM BAR -->
+    <div class="bottom-bar">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:12px;color:var(--muted);" id="statusText">Väntar på faktura...</span>
+        <span id="confBadge" style="display:none;"></span>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-ghost" id="copyBtn" onclick="copyXML()" disabled>Kopiera XML</button>
+        <button class="btn btn-green" id="downloadBtn" onclick="downloadXML()" disabled>↓ Ladda ner XML</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+let uploadedFile = null;
+let uploadedBase64 = null;
+let uploadedMime = null;
+let generatedXML = '';
+let extractedData = null;
+let currentFileName = '';
+
+// ============================================================
+// FILE HANDLING
+// ============================================================
+function handleDrop(e) {
+  e.preventDefault();
+  handleDragLeave();
+  const file = e.dataTransfer.files[0];
+  if (file) processFile(file);
+}
+function handleDragOver(e) { e.preventDefault(); document.getElementById('dropzone').classList.add('drag-over'); }
+function handleDragLeave() { document.getElementById('dropzone').classList.remove('drag-over'); }
+function handleFile(e) { const f = e.target.files[0]; if (f) processFile(f); }
+
+function processFile(file) {
+  uploadedFile = file;
+  currentFileName = file.name;
+
+  // Determine mime
+  if (file.type === 'application/pdf') {
+    uploadedMime = 'application/pdf';
+  } else if (file.type.startsWith('image/')) {
+    uploadedMime = file.type;
+  } else {
+    alert('Stödda format: PDF, PNG, JPG');
+    return;
+  }
+
+  // Update drop zone UI
+  document.getElementById('dropIcon').textContent = uploadedMime === 'application/pdf' ? '📋' : '🖼️';
+  document.getElementById('dropTitle').textContent = file.name;
+  document.getElementById('dropSub').textContent = `${(file.size/1024).toFixed(1)} KB · ${uploadedMime}`;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const dataUrl = e.target.result;
+    uploadedBase64 = dataUrl.split(',')[1];
+
+    // Show preview
+    const thumb = document.getElementById('pdfThumb');
+    const preview = document.getElementById('pdfPreviewCard');
+
+    if (uploadedMime.startsWith('image/')) {
+      thumb.src = dataUrl;
+      preview.style.display = 'flex';
+      preview.style.flexDirection = 'column';
+    } else {
+      // For PDF, show a PDF icon placeholder
+      thumb.src = '';
+      thumb.style.display = 'none';
+      preview.style.display = 'flex';
+    }
+
+    document.getElementById('pdfMeta').innerHTML = `
+      <div class="pdf-meta-row"><span class="pdf-meta-key">Fil</span><span class="pdf-meta-val">${file.name}</span></div>
+      <div class="pdf-meta-row"><span class="pdf-meta-key">Storlek</span><span class="pdf-meta-val">${(file.size/1024).toFixed(1)} KB</span></div>
+      <div class="pdf-meta-row"><span class="pdf-meta-key">Format</span><span class="pdf-meta-val">${uploadedMime}</span></div>
+      <div class="pdf-meta-row"><span class="pdf-meta-key">Status</span><span class="pdf-meta-val" style="color:#7ee787;">✓ Redo att konvertera</span></div>
+    `;
+
+    setStage('upload', 'done');
+    document.getElementById('convertBtn').disabled = false;
+    addThinking('sys', '📂', `Fil laddad: <strong>${file.name}</strong> (${(file.size/1024).toFixed(1)} KB)`);
+    addThinking('sys', '💡', 'Klicka på "Konvertera till PEPPOL XML" för att starta AI-analysen.');
+  };
+  reader.readAsDataURL(file);
+}
+
+// ============================================================
+// STAGES
+// ============================================================
+function setStage(name, status) {
+  const el = document.getElementById('stage-' + name);
+  if (!el) return;
+  el.className = 'stage ' + status;
+}
+
+function setProgress(pct) {
+  document.getElementById('pbar').style.width = pct + '%';
+}
+
+// ============================================================
+// AI THINKING LOG
+// ============================================================
+function addThinking(type, icon, html) {
+  const area = document.getElementById('thinkingArea');
+  // Clear empty state
+  if (area.querySelector('.empty-state')) area.innerHTML = '';
+
+  const iconClass = { ai:'ai', sys:'sys', ok:'ok', err:'err' }[type] || 'sys';
+  const div = document.createElement('div');
+  div.className = 'thinking-msg fade-in';
+  div.innerHTML = `
+    <div class="thinking-icon ${iconClass}">${icon}</div>
+    <div class="thinking-text">${html}</div>
+  `;
+  area.appendChild(div);
+  area.scrollTop = area.scrollHeight;
+  return div;
+}
+
+function addThinkingSpinner(label) {
+  return addThinking('ai', '<div class="spinner"></div>', `<span style="color:var(--muted);">${label}</span>`);
+}
+
+function removeEl(el) { el && el.parentNode && el.parentNode.removeChild(el); }
+
+// ============================================================
+// MAIN CONVERSION
+// ============================================================
+async function startConversion() {
+  if (!uploadedBase64) return;
+
+  const btn = document.getElementById('convertBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner" style="border-top-color:#fff;border-color:rgba(255,255,255,0.3);"></div> Konverterar...';
+
+  // Reset output
+  generatedXML = '';
+  document.getElementById('xmlViewer').innerHTML = '<span style="color:var(--muted);">Genererar...</span>';
+  document.getElementById('fieldTable').innerHTML = '<div class="empty-state"><div>Extraherar fält...</div></div>';
+  document.getElementById('downloadBtn').disabled = true;
+  document.getElementById('copyBtn').disabled = true;
+  document.getElementById('confBadge').style.display = 'none';
+  setProgress(5);
+
+  // Switch to AI tab
+  switchOut('ai');
+
+  try {
+    addThinking('ai', '🤖', '<strong>Claude Vision aktiverat</strong> — analyserar fakturadokument...');
+    setStage('vision', 'active');
+    setProgress(15);
+
+    // STEP 1: Extract invoice data via Claude Vision
+    const extractedJson = await extractWithClaude();
+    extractedData = extractedJson;
+    setStage('vision', 'done');
+    setStage('extract', 'active');
+    setProgress(50);
+
+    // STEP 2: Show field review
+    renderFieldTable(extractedJson);
+    setStage('extract', 'done');
+    setStage('build', 'active');
+    setProgress(70);
+
+    addThinking('ok', '✓', `Extraherade <strong>${countFields(extractedJson)}</strong> fält från fakturan`);
+
+    // STEP 3: Build XML
+    addThinking('ai', '⚙️', 'Bygger PEPPOL BIS 3.0 UBL 2.1 XML-struktur...');
+    const xml = buildPeppolXML(extractedJson);
+    generatedXML = xml;
+
+    setStage('build', 'done');
+    setStage('done', 'done');
+    setProgress(100);
+
+    renderXML(xml);
+    addThinking('ok', '✅', `<strong>Konvertering klar!</strong> PEPPOL XML genererad — ${xml.length} tecken, ${extractedJson.lines?.length || 0} fakturarader`);
+
+    // Update confidence
+    const conf = calcConfidence(extractedJson);
+    updateConfBadge(conf);
+
+    document.getElementById('statusText').textContent = `✓ Klar · ${currentFileName} → PEPPOL XML`;
+    document.getElementById('downloadBtn').disabled = false;
+    document.getElementById('copyBtn').disabled = false;
+
+  } catch (err) {
+    setStage('vision', 'error');
+    addThinking('err', '✗', `<strong>Fel:</strong> ${err.message}`);
+    addThinking('sys', '💡', 'Kontrollera att din API-nyckel är korrekt och att filen är en giltig faktura.');
+    document.getElementById('statusText').textContent = '✗ Konvertering misslyckades';
+    setProgress(0);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path d="M2 8a6 6 0 0 1 6-6 6 6 0 0 1 4.24 1.76" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M14 8a6 6 0 0 1-6 6 6 6 0 0 1-4.24-1.76" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M12 2l2.24 1.76L12 5.52" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M4 14L1.76 12.24 4 10.48" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Konvertera till PEPPOL XML`;
+  }
+}
+
+// ============================================================
+// CLAUDE API CALL — EXTRACT INVOICE DATA
+// ============================================================
+async function extractWithClaude() {
+  const currency = document.getElementById('fallbackCurrency').value;
+  const country = document.getElementById('fallbackCountry').value;
+  const strict = document.getElementById('strictMode').checked;
+
+  const spinner = addThinkingSpinner('Skickar faktura till Claude Vision för analys...');
+
+  const systemPrompt = `Du är en expert på fakturatolkning och PEPPOL BIS Billing 3.0-standarden.
+Din uppgift är att läsa en faktura (PDF eller bild) och extrahera alla relevanta fält.
+Svara ENBART med ett JSON-objekt, inga andra tecken, ingen markdown, inga backticks.
+
+JSON-strukturen ska vara exakt:
+{
+  "invoiceId": "fakturanummer",
+  "invoiceType": "380",
+  "issueDate": "YYYY-MM-DD",
+  "dueDate": "YYYY-MM-DD",
+  "currency": "${currency}",
+  "note": "eventuell anteckning",
+  "orderRef": "ordernummer om det finns",
+  "paymentRef": "OCR eller betalningsreferens",
+  "paymentTerms": "betalningsvillkor",
+  "seller": {
+    "name": "säljarens företagsnamn",
+    "orgNo": "organisationsnummer",
+    "vat": "VAT-nummer",
+    "street": "gatuadress",
+    "zip": "postnummer",
+    "city": "stad",
+    "country": "${country}",
+    "bank": "bankgiro eller IBAN",
+    "email": "e-post om finns",
+    "phone": "telefon om finns"
+  },
+  "buyer": {
+    "name": "köparens företagsnamn",
+    "orgNo": "organisationsnummer",
+    "vat": "VAT-nummer",
+    "street": "gatuadress",
+    "zip": "postnummer",
+    "city": "stad",
+    "country": "SE",
+    "ref": "köparreferens eller beställarnummer"
+  },
+  "vat": {
+    "category": "S",
+    "percent": "25",
+    "exemptReason": ""
+  },
+  "totals": {
+    "net": 0,
+    "vatAmount": 0,
+    "gross": 0
+  },
+  "lines": [
+    {
+      "id": 1,
+      "desc": "beskrivning",
+      "artNo": "artikelnummer",
+      "qty": 1,
+      "unit": "EA",
+      "price": 0,
+      "lineTotal": 0
+    }
+  ],
+  "confidence": {
+    "overall": 0.9,
+    "invoiceId": 1.0,
+    "sellerName": 1.0,
+    "buyerName": 0.8,
+    "amounts": 1.0,
+    "dates": 1.0,
+    "vatNumber": 0.7
+  },
+  "warnings": []
+}
+
+Regler:
+- invoiceType: 380=faktura, 381=kreditnota
+- Datum alltid YYYY-MM-DD format
+- Belopp som tal utan valutasymbol
+- unit-koder: HUR=timmar, EA=styck, DAY=dagar, KGM=kilo, MTR=meter
+- Om information saknas, använd tom sträng "" eller 0
+- confidence ska vara 0.0-1.0 per fält
+- warnings är en array med strängar som beskriver vad som är osäkert eller saknas
+${strict ? '- Strict mode: inkludera alla osäkerheter i warnings-arrayen' : ''}`;
+
+  // Determine content type for API
+  let mediaType = uploadedMime;
+  if (mediaType === 'application/pdf') mediaType = 'application/pdf';
+
+  const body = {
+    model: 'claude-sonnet-4-6',
+    max_tokens: 2000,
+    system: systemPrompt,
+    messages: [{
+      role: 'user',
+      content: [
+        {
+          type: mediaType === 'application/pdf' ? 'document' : 'image',
+          source: {
+            type: 'base64',
+            media_type: mediaType,
+            data: uploadedBase64
+          }
+        },
+        {
+          type: 'text',
+          text: 'Extrahera alla fakturafält från detta dokument och returnera som JSON enligt specifikationen.'
+        }
+      ]
+    }]
+  };
+
+  const res = await fetch('/api/claude', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+
+  removeEl(spinner);
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error?.message || `API-fel: ${res.status}`);
+  }
+
+  const data = await res.json();
+  const rawText = data.content.map(b => b.text || '').join('');
+
+  // Parse JSON response
+  let parsed;
+  try {
+    const clean = rawText.replace(/```json|```/g, '').trim();
+    parsed = JSON.parse(clean);
+  } catch (e) {
+    throw new Error('Kunde inte tolka AI-svaret som JSON. Prova en tydligare fakturabild.');
+  }
+
+  // Log what AI found
+  addThinking('ai', '👁️', `AI identifierade: <strong>${parsed.seller?.name || '?'}</strong> fakturerar <strong>${parsed.buyer?.name || '?'}</strong>`);
+  addThinking('ai', '💰', `Belopp: ${parsed.totals?.net || 0} exkl. moms + ${parsed.totals?.vatAmount || 0} moms = <strong>${parsed.totals?.gross || 0} ${parsed.currency || currency}</strong>`);
+
+  if (parsed.warnings?.length > 0) {
+    parsed.warnings.forEach(w => addThinking('ai', '⚠️', `<span style="color:#e3b341;">${w}</span>`));
+  }
+
+  return parsed;
+}
+
+// ============================================================
+// BUILD PEPPOL XML FROM EXTRACTED DATA
+// ============================================================
+function buildPeppolXML(d) {
+  const esc = s => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const n2 = n => parseFloat(n || 0).toFixed(2);
+  const currency = d.currency || 'SEK';
+
+  // Recalculate to ensure consistency
+  const lines = (d.lines || []);
+  const netCalc = lines.reduce((s,l) => s + (parseFloat(l.qty||0) * parseFloat(l.price||0)), 0);
+  const vatPct = parseFloat(d.vat?.percent || 25);
+  const vatCat = d.vat?.category || 'S';
+  const vatCalc = netCalc * (vatPct / 100);
+  const grossCalc = netCalc + vatCalc;
+
+  // Use AI-extracted totals if available and close, else recalculated
+  const net = Math.abs(parseFloat(d.totals?.net || netCalc) - netCalc) < 1 ? parseFloat(d.totals?.net || netCalc) : netCalc;
+  const vat = Math.abs(parseFloat(d.totals?.vatAmount || vatCalc) - vatCalc) < 1 ? parseFloat(d.totals?.vatAmount || vatCalc) : vatCalc;
+  const gross = net + vat;
+
+  const exemptLine = d.vat?.exemptReason ? `\n        <cbc:TaxExemptionReason>${esc(d.vat.exemptReason)}</cbc:TaxExemptionReason>` : '';
+
+  let linesXml = '';
+  lines.forEach((l, i) => {
+    const lineNet = n2(parseFloat(l.qty||0) * parseFloat(l.price||0));
+    linesXml += `
+  <cac:InvoiceLine>
+    <cbc:ID>${i+1}</cbc:ID>
+    <cbc:InvoicedQuantity unitCode="${esc(l.unit||'EA')}">${l.qty||1}</cbc:InvoicedQuantity>
+    <cbc:LineExtensionAmount currencyID="${esc(currency)}">${lineNet}</cbc:LineExtensionAmount>
+    <cac:Item>
+      <cbc:Name>${esc(l.desc||'Tjänst/Vara')}</cbc:Name>${l.artNo ? `
+      <cac:SellersItemIdentification><cbc:ID>${esc(l.artNo)}</cbc:ID></cac:SellersItemIdentification>` : ''}
+      <cac:ClassifiedTaxCategory>
+        <cbc:ID>${esc(vatCat)}</cbc:ID>
+        <cbc:Percent>${vatPct}</cbc:Percent>
+        <cac:TaxScheme><cbc:ID>VAT</cbc:ID></cac:TaxScheme>
+      </cac:ClassifiedTaxCategory>
+    </cac:Item>
+    <cac:Price>
+      <cbc:PriceAmount currencyID="${esc(currency)}">${n2(l.price||0)}</cbc:PriceAmount>
+    </cac:Price>
+  </cac:InvoiceLine>`;
+  });
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<!-- Konverterad av PDF→PEPPOL Converter | ${new Date().toISOString()} -->
+<!-- Källa: ${currentFileName} -->
+<Invoice
+  xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"
+  xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2"
+  xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2">
+
+  <cbc:CustomizationID>urn:cen.eu:en16931:2017#compliant#urn:fdc:peppol.eu:2017:poacc:billing:3.0</cbc:CustomizationID>
+  <cbc:ProfileID>urn:fdc:peppol.eu:2017:poacc:billing:01:1.0</cbc:ProfileID>
+  <cbc:ID>${esc(d.invoiceId||'UNKNOWN')}</cbc:ID>
+  <cbc:IssueDate>${esc(d.issueDate||new Date().toISOString().split('T')[0])}</cbc:IssueDate>${d.dueDate ? `
+  <cbc:DueDate>${esc(d.dueDate)}</cbc:DueDate>` : ''}
+  <cbc:InvoiceTypeCode>${esc(d.invoiceType||'380')}</cbc:InvoiceTypeCode>${d.note ? `
+  <cbc:Note>${esc(d.note)}</cbc:Note>` : ''}
+  <cbc:DocumentCurrencyCode>${esc(currency)}</cbc:DocumentCurrencyCode>
+  <cbc:BuyerReference>${esc(d.buyer?.ref||'REF-SAKNAS')}</cbc:BuyerReference>
+${d.orderRef ? `  <cac:OrderReference><cbc:ID>${esc(d.orderRef)}</cbc:ID></cac:OrderReference>\n` : ''}
+  <cac:AccountingSupplierParty>
+    <cac:Party>
+      <cbc:EndpointID schemeID="0007">${esc(d.seller?.orgNo||'0000000000')}</cbc:EndpointID>
+      <cac:PartyName><cbc:Name>${esc(d.seller?.name||'')}</cbc:Name></cac:PartyName>
+      <cac:PostalAddress>
+        <cbc:StreetName>${esc(d.seller?.street||'')}</cbc:StreetName>
+        <cbc:CityName>${esc(d.seller?.city||'')}</cbc:CityName>
+        <cbc:PostalZone>${esc(d.seller?.zip||'')}</cbc:PostalZone>
+        <cac:Country><cbc:IdentificationCode>${esc(d.seller?.country||'SE')}</cbc:IdentificationCode></cac:Country>
+      </cac:PostalAddress>
+      <cac:PartyTaxScheme>
+        <cbc:CompanyID>${esc(d.seller?.vat||'')}</cbc:CompanyID>
+        <cac:TaxScheme><cbc:ID>VAT</cbc:ID></cac:TaxScheme>
+      </cac:PartyTaxScheme>
+      <cac:PartyLegalEntity>
+        <cbc:RegistrationName>${esc(d.seller?.name||'')}</cbc:RegistrationName>
+        <cbc:CompanyID schemeID="0007">${esc(d.seller?.orgNo||'')}</cbc:CompanyID>
+      </cac:PartyLegalEntity>
+    </cac:Party>
+  </cac:AccountingSupplierParty>
+
+  <cac:AccountingCustomerParty>
+    <cac:Party>
+      <cbc:EndpointID schemeID="0007">${esc(d.buyer?.orgNo||'0000000001')}</cbc:EndpointID>
+      <cac:PartyName><cbc:Name>${esc(d.buyer?.name||'')}</cbc:Name></cac:PartyName>
+      <cac:PostalAddress>
+        <cbc:StreetName>${esc(d.buyer?.street||'')}</cbc:StreetName>
+        <cbc:CityName>${esc(d.buyer?.city||'')}</cbc:CityName>
+        <cbc:PostalZone>${esc(d.buyer?.zip||'')}</cbc:PostalZone>
+        <cac:Country><cbc:IdentificationCode>${esc(d.buyer?.country||'SE')}</cbc:IdentificationCode></cac:Country>
+      </cac:PostalAddress>
+      <cac:PartyTaxScheme>
+        <cbc:CompanyID>${esc(d.buyer?.vat||'')}</cbc:CompanyID>
+        <cac:TaxScheme><cbc:ID>VAT</cbc:ID></cac:TaxScheme>
+      </cac:PartyTaxScheme>
+      <cac:PartyLegalEntity>
+        <cbc:RegistrationName>${esc(d.buyer?.name||'')}</cbc:RegistrationName>
+        <cbc:CompanyID schemeID="0007">${esc(d.buyer?.orgNo||'')}</cbc:CompanyID>
+      </cac:PartyLegalEntity>
+    </cac:Party>
+  </cac:AccountingCustomerParty>
+
+  <cac:PaymentMeans>
+    <cbc:PaymentMeansCode>30</cbc:PaymentMeansCode>${d.paymentRef ? `
+    <cbc:PaymentID>${esc(d.paymentRef)}</cbc:PaymentID>` : ''}${d.seller?.bank ? `
+    <cac:PayeeFinancialAccount>
+      <cbc:ID>${esc(d.seller.bank)}</cbc:ID>
+      <cbc:Name>${esc(d.seller.name||'')}</cbc:Name>
+    </cac:PayeeFinancialAccount>` : ''}
+  </cac:PaymentMeans>${d.paymentTerms ? `
+
+  <cac:PaymentTerms>
+    <cbc:Note>${esc(d.paymentTerms)}</cbc:Note>
+  </cac:PaymentTerms>` : ''}
+
+  <cac:TaxTotal>
+    <cbc:TaxAmount currencyID="${esc(currency)}">${n2(vat)}</cbc:TaxAmount>
+    <cac:TaxSubtotal>
+      <cbc:TaxableAmount currencyID="${esc(currency)}">${n2(net)}</cbc:TaxableAmount>
+      <cbc:TaxAmount currencyID="${esc(currency)}">${n2(vat)}</cbc:TaxAmount>
+      <cac:TaxCategory>
+        <cbc:ID>${esc(vatCat)}</cbc:ID>
+        <cbc:Percent>${vatPct}</cbc:Percent>${exemptLine}
+        <cac:TaxScheme><cbc:ID>VAT</cbc:ID></cac:TaxScheme>
+      </cac:TaxCategory>
+    </cac:TaxSubtotal>
+  </cac:TaxTotal>
+
+  <cac:LegalMonetaryTotal>
+    <cbc:LineExtensionAmount currencyID="${esc(currency)}">${n2(net)}</cbc:LineExtensionAmount>
+    <cbc:TaxExclusiveAmount currencyID="${esc(currency)}">${n2(net)}</cbc:TaxExclusiveAmount>
+    <cbc:TaxInclusiveAmount currencyID="${esc(currency)}">${n2(gross)}</cbc:TaxInclusiveAmount>
+    <cbc:PayableAmount currencyID="${esc(currency)}">${n2(gross)}</cbc:PayableAmount>
+  </cac:LegalMonetaryTotal>
+${linesXml}
+</Invoice>`;
+}
+
+// ============================================================
+// FIELD TABLE RENDER
+// ============================================================
+function renderFieldTable(d) {
+  const conf = d.confidence || {};
+  const strict = document.getElementById('strictMode').checked;
+
+  const fields = [
+    { bt:'BT-1',  name:'Fakturanummer',   val: d.invoiceId,          c: conf.invoiceId },
+    { bt:'BT-2',  name:'Fakturadatum',    val: d.issueDate,          c: conf.dates },
+    { bt:'BT-9',  name:'Förfallodatum',   val: d.dueDate,            c: conf.dates },
+    { bt:'BT-3',  name:'Fakturatyp',      val: d.invoiceType,        c: 1.0 },
+    { bt:'BT-5',  name:'Valuta',          val: d.currency,           c: 1.0 },
+    { bt:'BT-13', name:'Ordernummer',     val: d.orderRef,           c: 0.8 },
+    { bt:'BT-83', name:'Betalningsref',   val: d.paymentRef,         c: 0.9 },
+    { bt:'BT-27', name:'Säljare',         val: d.seller?.name,       c: conf.sellerName },
+    { bt:'BT-30', name:'Säljare org.nr',  val: d.seller?.orgNo,      c: conf.vatNumber },
+    { bt:'BT-31', name:'Säljare VAT',     val: d.seller?.vat,        c: conf.vatNumber },
+    { bt:'BT-35', name:'Säljare adress',  val: d.seller?.street,     c: 0.85 },
+    { bt:'BT-40', name:'Säljare land',    val: d.seller?.country,    c: 0.9 },
+    { bt:'BT-84', name:'Bankgiro/IBAN',   val: d.seller?.bank,       c: 0.85 },
+    { bt:'BT-44', name:'Köpare',          val: d.buyer?.name,        c: conf.buyerName },
+    { bt:'BT-47', name:'Köpare org.nr',   val: d.buyer?.orgNo,       c: conf.vatNumber },
+    { bt:'BT-10', name:'Köparreferens',   val: d.buyer?.ref,         c: 0.7 },
+    { bt:'BT-118',name:'Momskategori',    val: d.vat?.category,      c: 0.9 },
+    { bt:'BT-119',name:'Momssats',        val: d.vat?.percent + '%', c: conf.amounts },
+    { bt:'BT-106',name:'Netto exkl. moms',val: d.totals?.net,        c: conf.amounts },
+    { bt:'BT-110',name:'Momsbelopp',      val: d.totals?.vatAmount,  c: conf.amounts },
+    { bt:'BT-112',name:'Totalt inkl. moms',val: d.totals?.gross,     c: conf.amounts },
+  ];
+
+  const rows = fields.map(f => {
+    const c = f.c || 0.5;
+    const confClass = c >= 0.85 ? 'conf-hi' : c >= 0.6 ? 'conf-md' : 'conf-lo';
+    const confLabel = c >= 0.85 ? '●' : c >= 0.6 ? '◐' : '○';
+    const hide = strict ? '' : (c < 0.5 ? 'opacity:0.4;' : '');
+
+    return `<div class="ft-row" style="${hide}">
+      <span class="ft-bt">${f.bt}</span>
+      <span class="ft-name">${f.name}</span>
+      <span class="ft-val">${f.val || '<span style="color:var(--danger);font-size:10px;">SAKNAS</span>'}</span>
+      <span class="ft-conf <span class="${confClass}">${confLabel} ${Math.round(c*100)}%</span>"></span>
+    </div>`;
+  });
+
+  // Lines
+  let linesHtml = '';
+  if (d.lines?.length > 0) {
+    linesHtml = `<div style="margin-top:16px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);padding:0 10px;">Fakturarader (${d.lines.length} st)</div>`;
+    d.lines.forEach((l, i) => {
+      linesHtml += `<div class="ft-row">
+        <span class="ft-bt">RAD ${i+1}</span>
+        <span class="ft-name">${l.artNo || '—'}</span>
+        <span class="ft-val">${l.desc} · ${l.qty} × ${l.price} = ${parseFloat((l.qty||0)*(l.price||0)).toFixed(2)}</span>
+        <span class="ft-conf"><span class="conf-hi">● 90%</span></span>
+      </div>`;
+    });
+  }
+
+  document.getElementById('fieldTable').innerHTML = `
+    <div class="ft-row ft-header">
+      <span>BT-kod</span><span>Fält</span><span>Extraherat värde</span><span>Konfidens</span>
+    </div>
+    ${rows.join('')}
+    ${linesHtml}
+  `;
+}
+
+// ============================================================
+// XML RENDERING WITH HIGHLIGHT
+// ============================================================
+function renderXML(xml) {
+  const escaped = xml.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const highlighted = escaped
+    .replace(/&lt;!--[\s\S]*?--&gt;/g, m => `<span class="xml-cmt">${m}</span>`)
+    .replace(/(&lt;\/?)([\w:]+)/g, (m,lt,tag) => `${lt}<span class="xml-tag">${tag}</span>`)
+    .replace(/([\w:]+)(=)(&quot;)(.*?)(&quot;)/g,
+      (m,a,eq,q1,v,q2) => `<span class="xml-attr">${a}</span>${eq}<span class="xml-val">${q1}${v}${q2}</span>`)
+    .replace(/&gt;([^&<\n]+)&lt;\//g,
+      (m,t) => t.trim() ? `&gt;<span class="xml-text">${t}</span>&lt;/` : m);
+  document.getElementById('xmlViewer').innerHTML = highlighted;
+}
+
+// ============================================================
+// UTILS
+// ============================================================
+function countFields(d) {
+  let count = 0;
+  const countObj = o => { if(!o) return; Object.values(o).forEach(v => { if(v && typeof v !== 'object') count++; else if(typeof v === 'object') countObj(v); }); };
+  countObj(d);
+  return count;
+}
+
+function calcConfidence(d) {
+  const c = d.confidence || {};
+  const vals = Object.values(c).filter(v => typeof v === 'number');
+  if (!vals.length) return 0.7;
+  return vals.reduce((s,v) => s+v, 0) / vals.length;
+}
+
+function updateConfBadge(conf) {
+  const el = document.getElementById('confBadge');
+  el.style.display = 'inline-flex';
+  const pct = Math.round(conf * 100);
+  const cls = conf >= 0.85 ? 'hi' : conf >= 0.6 ? 'md' : 'lo';
+  el.className = `conf-badge ${cls}`;
+  el.textContent = `AI-konfidens: ${pct}%`;
+}
+
+function switchOut(name) {
+  document.querySelectorAll('.out-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.out-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('out-' + name).classList.add('active');
+  event.target.classList.add('active');
+}
+
+function copyXML() {
+  if (!generatedXML) return;
+  navigator.clipboard.writeText(generatedXML);
+  const btn = document.getElementById('copyBtn');
+  btn.textContent = '✓ Kopierat!';
+  setTimeout(() => btn.textContent = 'Kopiera XML', 2000);
+}
+
+function downloadXML() {
+  if (!generatedXML) return;
+  const name = currentFileName.replace(/\.(pdf|png|jpg|jpeg)$/i, '') + '_PEPPOL.xml';
+  const blob = new Blob([generatedXML], { type: 'application/xml' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+}
+</script>
+</body>
+</html>

@@ -4,6 +4,35 @@ const path    = require('path');
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
+// ─── Basic Auth middleware ────────────────────────────────────────────────────
+app.use((req, res, next) => {
+  // Health check bypasses auth so Render can monitor the service
+  if (req.path === '/health') return next();
+
+  const expectedUser = process.env.APP_USER;
+  const expectedPass = process.env.APP_PASS;
+
+  // If no credentials configured, skip auth (local dev)
+  if (!expectedUser || !expectedPass) return next();
+
+  const authHeader = req.headers['authorization'];
+  if (!authHeader || !authHeader.startsWith('Basic ')) {
+    res.setHeader('WWW-Authenticate', 'Basic realm="PEPPOL Converter"');
+    return res.status(401).send('Inloggning krävs');
+  }
+
+  const base64 = authHeader.slice(6);
+  const decoded = Buffer.from(base64, 'base64').toString('utf8');
+  const [user, pass] = decoded.split(':');
+
+  if (user === expectedUser && pass === expectedPass) {
+    return next();
+  }
+
+  res.setHeader('WWW-Authenticate', 'Basic realm="PEPPOL Converter"');
+  return res.status(401).send('Fel användarnamn eller lösenord');
+});
+
 // ─── Body parsing (base64 PDFs can be large) ─────────────────────────────────
 app.use(express.json({ limit: '25mb' }));
 
@@ -11,8 +40,6 @@ app.use(express.json({ limit: '25mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ─── Claude API proxy ─────────────────────────────────────────────────────────
-// Handles both the OPTIONS preflight and the actual POST.
-// The API key lives only here — never sent to the browser.
 app.options('/api/claude', (_req, res) => {
   res.sendStatus(200);
 });
@@ -27,7 +54,6 @@ app.post('/api/claude', async (req, res) => {
   }
 
   try {
-    // Node 18+ has fetch built-in — no extra packages needed
     const upstream = await fetch('https://api.anthropic.com/v1/messages', {
       method:  'POST',
       headers: {
@@ -47,7 +73,7 @@ app.post('/api/claude', async (req, res) => {
   }
 });
 
-// ─── Health check ─────────────────────────────────────────────────────────────
+// ─── Health check (no auth) ───────────────────────────────────────────────────
 app.get('/health', (_req, res) => {
   res.json({
     status:    'ok',
@@ -67,4 +93,5 @@ app.listen(PORT, () => {
   console.log(`✅  PEPPOL Converter  →  http://localhost:${PORT}`);
   console.log(`    Node ${process.version}`);
   console.log(`    API key: ${process.env.ANTHROPIC_API_KEY ? '✓ set' : '✗ MISSING'}`);
+  console.log(`    Auth:    ${process.env.APP_USER ? '✓ aktiv' : '✗ avstängd (lokal dev)'}`);
 });

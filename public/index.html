@@ -274,6 +274,24 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 
 @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
 .fade-in { animation:fadeIn 0.3s ease forwards; }
+
+.profile-pill {
+  display:inline-flex; align-items:center; gap:5px; padding:3px 10px;
+  border-radius:12px; font-size:11px; font-weight:600; cursor:pointer;
+  border:1px solid var(--border); background:transparent; color:var(--muted);
+  transition:all 0.15s; font-family:inherit; white-space:nowrap;
+}
+.profile-pill:hover { border-color:var(--accent); color:#7ee787; }
+.profile-pill.active { background:rgba(35,134,54,0.15); border-color:var(--accent); color:#7ee787; }
+.profile-pill.factoring { border-color:rgba(137,87,229,0.4); color:#b392f0; }
+.profile-pill.factoring.active { background:rgba(137,87,229,0.15); border-color:#8957e5; color:#b392f0; }
+.mini-input {
+  background:var(--code); border:1px solid var(--border); border-radius:5px;
+  color:var(--text); padding:5px 8px; font-size:11px; font-family:'JetBrains Mono',monospace;
+  width:100%; outline:none; transition:border-color 0.15s;
+}
+.mini-input:focus { border-color:var(--blue); }
+.mini-label { font-size:10px; color:var(--muted); display:block; margin-bottom:2px; }
 </style>
 </head>
 <body>
@@ -314,6 +332,31 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
       <div class="drop-sub" id="dropSub">PDF, PNG, JPG — faktura på valfritt format</div>
     </div>
 
+    <!-- TESTFAKTUROR -->
+    <div style="margin:0 20px 12px;display:flex;flex-direction:column;gap:6px;">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);">
+        Testfakturor — klicka för att ladda
+      </div>
+      <button onclick="loadTestFile('testfaktura-1.pdf','Faktura v6 — komplett')"
+        style="display:flex;align-items:center;gap:10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 12px;cursor:pointer;text-align:left;transition:border-color 0.15s;font-family:inherit;"
+        onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+        <span style="font-size:20px;">📄</span>
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--text);">testfaktura-1.pdf</div>
+          <div style="font-size:11px;color:var(--muted);">Komplett faktura · alla PEPPOL-fält</div>
+        </div>
+      </button>
+      <button onclick="loadTestFile('testfaktura-2.pdf','Faktura v7 — med avrundning BT-114')"
+        style="display:flex;align-items:center;gap:10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 12px;cursor:pointer;text-align:left;transition:border-color 0.15s;font-family:inherit;"
+        onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+        <span style="font-size:20px;">📄</span>
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--text);">testfaktura-2.pdf</div>
+          <div style="font-size:11px;color:var(--muted);">Med avrundning BT-114 · -0,17 SEK</div>
+        </div>
+      </button>
+    </div>
+
     <!-- PDF / Image preview -->
     <div class="pdf-preview" id="pdfPreviewCard" style="display:none;">
       <img id="pdfThumb" class="pdf-thumb" alt="Faktura förhandsgranskning">
@@ -347,6 +390,122 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
       <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(137,87,229,0.08);border:1px solid rgba(137,87,229,0.3);border-radius:6px;">
         <input type="checkbox" id="strictMode" style="width:14px;height:14px;accent-color:var(--purple);">
         <label for="strictMode" style="font-size:11px;color:var(--muted);cursor:pointer;">Strict mode — markera osäkra fält</label>
+      </div>
+    </div>
+
+    <!-- PROFILER: Factoring & Routing -->
+    <div style="margin:0 20px 12px;display:flex;flex-direction:column;gap:8px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);">Profiler</div>
+        <button onclick="toggleProfileEditor()" style="font-size:10px;color:var(--blue);background:none;border:none;cursor:pointer;font-family:inherit;padding:0;">+ Ny profil</button>
+      </div>
+
+      <!-- Saved profile pills -->
+      <div id="profilePills" style="display:flex;flex-wrap:wrap;gap:4px;">
+        <button class="profile-pill active" onclick="selectProfile('ingen')" id="pill-ingen">Ingen</button>
+      </div>
+
+      <!-- Active factoring info (shown when a factoring profile is selected) -->
+      <div id="activeFactoringInfo" style="display:none;background:rgba(137,87,229,0.08);border:1px solid rgba(137,87,229,0.3);border-radius:6px;padding:8px 10px;">
+        <div style="font-size:10px;color:#b392f0;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">Factoringbolag aktivt</div>
+        <div id="activeFactoringName" style="font-size:12px;color:var(--text);font-weight:600;"></div>
+        <div id="activeFactoringMeta" style="font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:2px;"></div>
+      </div>
+
+      <!-- Profile editor (collapsed by default) -->
+      <div id="profileEditor" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:10px;flex-direction:column;gap:8px;">
+        <div style="font-size:11px;font-weight:700;color:var(--text);">Lägg till profil</div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+          <div>
+            <label class="mini-label">Typ</label>
+            <select id="newProfileType" class="mini-input" onchange="updateProfileTypeUI()" style="font-family:inherit;">
+              <option value="factoring">Factoringbolag</option>
+              <option value="routing">Access Point</option>
+              <option value="buyer">Fast köpare</option>
+            </select>
+          </div>
+          <div>
+            <label class="mini-label">Profilnamn</label>
+            <input type="text" id="newProfileLabel" class="mini-input" placeholder="t.ex. Svea Ekonomi">
+          </div>
+        </div>
+
+        <!-- Factoring fields -->
+        <div id="factoringFields" style="display:flex;flex-direction:column;gap:6px;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+            <div>
+              <label class="mini-label">Företagsnamn (BT-59)</label>
+              <input type="text" id="fName" class="mini-input" placeholder="Svea Ekonomi AB">
+            </div>
+            <div>
+              <label class="mini-label">Org.nr (BT-60)</label>
+              <input type="text" id="fOrgNo" class="mini-input" placeholder="5561234567">
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+            <div>
+              <label class="mini-label">Bankgiro / IBAN (BT-84)</label>
+              <input type="text" id="fBank" class="mini-input" placeholder="890-2455">
+            </div>
+            <div>
+              <label class="mini-label">VAT-nr (BT-61)</label>
+              <input type="text" id="fVat" class="mini-input" placeholder="SE556123456701">
+            </div>
+          </div>
+        </div>
+
+        <!-- Routing fields -->
+        <div id="routingFields" style="display:none;flex-direction:column;gap:6px;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+            <div>
+              <label class="mini-label">Access Point URL</label>
+              <input type="text" id="rUrl" class="mini-input" placeholder="https://ap.inexchange.se">
+            </div>
+            <div>
+              <label class="mini-label">Endpoint scheme</label>
+              <select id="rScheme" class="mini-input" style="font-family:inherit;">
+                <option value="0007">0007 — Sverige</option>
+                <option value="0088">0088 — GLN</option>
+                <option value="0192">0192 — Norge</option>
+                <option value="0184">0184 — Danmark</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label class="mini-label">Köparens PEPPOL-ID (BT-49)</label>
+            <input type="text" id="rEndpoint" class="mini-input" placeholder="5560001234">
+          </div>
+        </div>
+
+        <!-- Buyer fields -->
+        <div id="buyerFields" style="display:none;flex-direction:column;gap:6px;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+            <div>
+              <label class="mini-label">Köparens namn (BT-44)</label>
+              <input type="text" id="bName" class="mini-input" placeholder="Testköparen AB">
+            </div>
+            <div>
+              <label class="mini-label">Org.nr (BT-47)</label>
+              <input type="text" id="bOrgNo" class="mini-input" placeholder="5560001234">
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+            <div>
+              <label class="mini-label">Referens (BT-10)</label>
+              <input type="text" id="bRef" class="mini-input" placeholder="REF-2026">
+            </div>
+            <div>
+              <label class="mini-label">VAT-nr (BT-48)</label>
+              <input type="text" id="bVat" class="mini-input" placeholder="SE556000123401">
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:6px;">
+          <button onclick="saveProfile()" style="flex:1;padding:6px;background:var(--accent);color:#fff;border:none;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">Spara profil</button>
+          <button onclick="toggleProfileEditor()" style="padding:6px 10px;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:5px;font-size:11px;cursor:pointer;font-family:inherit;">Avbryt</button>
+        </div>
       </div>
     </div>
 
@@ -459,6 +618,19 @@ function handleDrop(e) {
 function handleDragOver(e) { e.preventDefault(); document.getElementById('dropzone').classList.add('drag-over'); }
 function handleDragLeave() { document.getElementById('dropzone').classList.remove('drag-over'); }
 function handleFile(e) { const f = e.target.files[0]; if (f) processFile(f); }
+
+async function loadTestFile(filename, label) {
+  try {
+    addThinking('sys', '📂', `Laddar testfaktura: <strong>${filename}</strong>`);
+    const res = await fetch('/' + filename);
+    if (!res.ok) throw new Error('Kunde inte hämta filen');
+    const blob = await res.blob();
+    const file = new File([blob], filename, { type: 'application/pdf' });
+    processFile(file);
+  } catch (err) {
+    addThinking('err', '✗', `Kunde inte ladda ${filename}: ${err.message}`);
+  }
+}
 
 function processFile(file) {
   uploadedFile = file;
@@ -598,7 +770,8 @@ async function startConversion() {
     // STEP 3: Build XML
     addThinking('ai', '⚙️', 'Bygger PEPPOL BIS 3.0 UBL 2.1 XML-struktur...');
     const xml = buildPeppolXML(extractedJson);
-    generatedXML = xml;
+    const activeProfile = getActiveProfile();
+    generatedXML = activeProfile ? applyProfileToXML(xml, activeProfile) : xml;
 
     setStage('build', 'done');
     setStage('done', 'done');
@@ -1061,7 +1234,230 @@ function downloadXML() {
   a.href = URL.createObjectURL(blob);
   a.download = name;
   a.click();
+}// ============================================================
+// PROFILE SYSTEM — localStorage-based
+// ============================================================
+const PROFILES_KEY = 'peppol_profiles_v1';
+let activeProfileId = 'ingen';
+
+const DEFAULT_PROFILES = [
+  {
+    id: 'svea', label: 'Svea Ekonomi', type: 'factoring',
+    name: 'Svea Ekonomi AB', orgNo: '5561234567',
+    vat: 'SE556123456701', bank: '890-2455'
+  },
+  {
+    id: 'collector', label: 'Collector Bank', type: 'factoring',
+    name: 'Collector Bank AB', orgNo: '5566408405',
+    vat: 'SE556640840501', bank: '630-6679'
+  },
+  {
+    id: 'inexchange', label: 'Inexchange (test)', type: 'routing',
+    url: 'https://api.inexchange.se/peppol/test',
+    scheme: '0007', endpoint: ''
+  }
+];
+
+function loadProfiles() {
+  try {
+    const stored = localStorage.getItem(PROFILES_KEY);
+    return stored ? JSON.parse(stored) : [...DEFAULT_PROFILES];
+  } catch { return [...DEFAULT_PROFILES]; }
 }
+
+function saveProfiles(profiles) {
+  try { localStorage.setItem(PROFILES_KEY, JSON.stringify(profiles)); } catch {}
+}
+
+function renderProfilePills() {
+  const profiles = loadProfiles();
+  const container = document.getElementById('profilePills');
+  container.innerHTML = '<button class="profile-pill ' + (activeProfileId === 'ingen' ? 'active' : '') + '" onclick="selectProfile(\'ingen\')">Ingen</button>';
+
+  profiles.forEach(p => {
+    const isFactoring = p.type === 'factoring';
+    const isActive = activeProfileId === p.id;
+    const btn = document.createElement('button');
+    btn.className = 'profile-pill' + (isFactoring ? ' factoring' : '') + (isActive ? ' active' : '');
+    btn.innerHTML = (isFactoring ? '🏦 ' : isActive ? '' : '') + p.label;
+    btn.onclick = () => selectProfile(p.id);
+    btn.oncontextmenu = (e) => { e.preventDefault(); deleteProfile(p.id, p.label); };
+    btn.title = 'Högerklicka för att ta bort';
+    container.appendChild(btn);
+  });
+}
+
+function selectProfile(id) {
+  activeProfileId = id;
+  renderProfilePills();
+
+  const info = document.getElementById('activeFactoringInfo');
+  if (id === 'ingen') {
+    info.style.display = 'none';
+    addLog('info', 'PROFIL', 'Ingen profil vald');
+    return;
+  }
+
+  const profiles = loadProfiles();
+  const p = profiles.find(x => x.id === id);
+  if (!p) return;
+
+  if (p.type === 'factoring') {
+    info.style.display = 'block';
+    document.getElementById('activeFactoringName').textContent = p.name;
+    document.getElementById('activeFactoringMeta').textContent =
+      `Org.nr: ${p.orgNo}  ·  Bankgiro: ${p.bank}`;
+    addLog('ok', 'PROFIL', `Factoringprofil vald: ${p.label} — betalning går till ${p.bank}`);
+  } else if (p.type === 'routing') {
+    info.style.display = 'none';
+    addLog('ok', 'PROFIL', `Routing-profil vald: ${p.label} → ${p.url}`);
+  } else if (p.type === 'buyer') {
+    info.style.display = 'none';
+    addLog('ok', 'PROFIL', `Köparprofil vald: ${p.label}`);
+  }
+}
+
+function toggleProfileEditor() {
+  const ed = document.getElementById('profileEditor');
+  const isOpen = ed.style.display !== 'none';
+  ed.style.display = isOpen ? 'none' : 'flex';
+  if (!isOpen) {
+    document.getElementById('newProfileLabel').value = '';
+    document.getElementById('fName').value = '';
+    document.getElementById('fOrgNo').value = '';
+    document.getElementById('fBank').value = '';
+    document.getElementById('fVat').value = '';
+    document.getElementById('rUrl').value = '';
+    document.getElementById('rEndpoint').value = '';
+    document.getElementById('bName').value = '';
+    document.getElementById('bOrgNo').value = '';
+    document.getElementById('bRef').value = '';
+    document.getElementById('bVat').value = '';
+  }
+}
+
+function updateProfileTypeUI() {
+  const type = document.getElementById('newProfileType').value;
+  document.getElementById('factoringFields').style.display = type === 'factoring' ? 'flex' : 'none';
+  document.getElementById('routingFields').style.display  = type === 'routing'   ? 'flex' : 'none';
+  document.getElementById('buyerFields').style.display    = type === 'buyer'     ? 'flex' : 'none';
+}
+
+function saveProfile() {
+  const type  = document.getElementById('newProfileType').value;
+  const label = document.getElementById('newProfileLabel').value.trim();
+  if (!label) { alert('Ange ett profilnamn'); return; }
+
+  const id = 'p_' + Date.now();
+  let profile = { id, label, type };
+
+  if (type === 'factoring') {
+    const name = document.getElementById('fName').value.trim();
+    if (!name) { alert('Ange företagsnamn'); return; }
+    profile = { ...profile,
+      name, orgNo: document.getElementById('fOrgNo').value.trim(),
+      vat:  document.getElementById('fVat').value.trim(),
+      bank: document.getElementById('fBank').value.trim()
+    };
+  } else if (type === 'routing') {
+    profile = { ...profile,
+      url:      document.getElementById('rUrl').value.trim(),
+      scheme:   document.getElementById('rScheme').value,
+      endpoint: document.getElementById('rEndpoint').value.trim()
+    };
+  } else if (type === 'buyer') {
+    const name = document.getElementById('bName').value.trim();
+    if (!name) { alert('Ange köparens namn'); return; }
+    profile = { ...profile,
+      name, orgNo: document.getElementById('bOrgNo').value.trim(),
+      ref:  document.getElementById('bRef').value.trim(),
+      vat:  document.getElementById('bVat').value.trim()
+    };
+  }
+
+  const profiles = loadProfiles();
+  profiles.push(profile);
+  saveProfiles(profiles);
+  toggleProfileEditor();
+  renderProfilePills();
+  selectProfile(id);
+  addLog('ok', 'PROFIL', `Sparade ny profil: ${label} (${type})`);
+}
+
+function deleteProfile(id, label) {
+  if (!confirm(`Ta bort profilen "${label}"?`)) return;
+  const profiles = loadProfiles().filter(p => p.id !== id);
+  saveProfiles(profiles);
+  if (activeProfileId === id) selectProfile('ingen');
+  else renderProfilePills();
+  addLog('info', 'PROFIL', `Tog bort profil: ${label}`);
+}
+
+function getActiveProfile() {
+  if (activeProfileId === 'ingen') return null;
+  return loadProfiles().find(p => p.id === activeProfileId) || null;
+}
+
+// ── Inject profile data into generated XML ──────────────────────────────────
+function applyProfileToXML(xml, profile) {
+  if (!profile) return xml;
+
+  if (profile.type === 'factoring') {
+    // Insert PayeeParty block after AccountingCustomerParty closing tag
+    const payeeBlock = `
+  <cac:PayeeParty>
+    <cac:PartyName>
+      <cbc:Name>${esc(profile.name)}</cbc:Name>
+    </cac:PartyName>
+    <cac:PartyLegalEntity>
+      <cbc:CompanyID schemeID="0007">${esc(profile.orgNo)}</cbc:CompanyID>
+    </cac:PartyLegalEntity>${profile.vat ? `
+    <cac:PartyTaxScheme>
+      <cbc:CompanyID>${esc(profile.vat)}</cbc:CompanyID>
+      <cac:TaxScheme><cbc:ID>VAT</cbc:ID></cac:TaxScheme>
+    </cac:PartyTaxScheme>` : ''}
+  </cac:PayeeParty>`;
+    xml = xml.replace('</cac:AccountingCustomerParty>', '</cac:AccountingCustomerParty>' + payeeBlock);
+
+    // Replace PayeeFinancialAccount with factoring bank details
+    if (profile.bank) {
+      xml = xml.replace(
+        /<cac:PayeeFinancialAccount>[\s\S]*?<\/cac:PayeeFinancialAccount>/,
+        `<cac:PayeeFinancialAccount>
+      <cbc:ID>${esc(profile.bank)}</cbc:ID>
+      <cbc:Name>${esc(profile.name)}</cbc:Name>
+    </cac:PayeeFinancialAccount>`
+      );
+    }
+    addLog('ok', 'PROFIL', `Factoringbolag "${profile.name}" injicerat i XML (BG-10 Payee)`);
+
+  } else if (profile.type === 'buyer') {
+    // Override buyer fields if profile has them
+    if (profile.name) xml = xml.replace(
+      /(<cac:AccountingCustomerParty>[\s\S]*?<cbc:Name>)([^<]*)/,
+      '$1' + esc(profile.name)
+    );
+    addLog('ok', 'PROFIL', `Köparprofil "${profile.name}" injicerad i XML`);
+
+  } else if (profile.type === 'routing') {
+    // Override buyer endpoint
+    if (profile.endpoint && profile.scheme) {
+      xml = xml.replace(
+        /(<cac:AccountingCustomerParty>[\s\S]*?<cbc:EndpointID schemeID=")[^"]*(">[^<]*)/,
+        `$1${esc(profile.scheme)}$2`.replace(/>.*/, `>${esc(profile.endpoint)}`)
+      );
+    }
+    addLog('ok', 'PROFIL', `Routing-profil injicerad: endpoint ${profile.endpoint}`);
+  }
+  return xml;
+}
+
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Init profiles on load
+document.addEventListener('DOMContentLoaded', () => {
+  renderProfilePills();
+});
 </script>
-</body>
-</html>

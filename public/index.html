@@ -1294,7 +1294,7 @@ function selectProfile(id) {
   const info = document.getElementById('activeFactoringInfo');
   if (id === 'ingen') {
     info.style.display = 'none';
-    addLog('info', 'PROFIL', 'Ingen profil vald');
+    addThinking('sys', '📋', 'Ingen profil vald');
     return;
   }
 
@@ -1307,13 +1307,13 @@ function selectProfile(id) {
     document.getElementById('activeFactoringName').textContent = p.name;
     document.getElementById('activeFactoringMeta').textContent =
       `Org.nr: ${p.orgNo}  ·  Bankgiro: ${p.bank}`;
-    addLog('ok', 'PROFIL', `Factoringprofil vald: ${p.label} — betalning går till ${p.bank}`);
+    addThinking('ok', '✓', `Factoringprofil vald: ${p.label} — betalning går till ${p.bank}`);
   } else if (p.type === 'routing') {
     info.style.display = 'none';
-    addLog('ok', 'PROFIL', `Routing-profil vald: ${p.label} → ${p.url}`);
+    addThinking('ok', '✓', `Routing-profil vald: ${p.label} → ${p.url}`);
   } else if (p.type === 'buyer') {
     info.style.display = 'none';
-    addLog('ok', 'PROFIL', `Köparprofil vald: ${p.label}`);
+    addThinking('ok', '✓', `Köparprofil vald: ${p.label}`);
   }
 }
 
@@ -1381,7 +1381,7 @@ function saveProfile() {
   toggleProfileEditor();
   renderProfilePills();
   selectProfile(id);
-  addLog('ok', 'PROFIL', `Sparade ny profil: ${label} (${type})`);
+  addThinking('ok', '✓', `Sparade ny profil: ${label} (${type})`);
 }
 
 function deleteProfile(id, label) {
@@ -1390,7 +1390,7 @@ function deleteProfile(id, label) {
   saveProfiles(profiles);
   if (activeProfileId === id) selectProfile('ingen');
   else renderProfilePills();
-  addLog('info', 'PROFIL', `Tog bort profil: ${label}`);
+  addThinking('sys', '📋', `Tog bort profil: ${label}`);
 }
 
 function getActiveProfile() {
@@ -1429,7 +1429,7 @@ function applyProfileToXML(xml, profile) {
     </cac:PayeeFinancialAccount>`
       );
     }
-    addLog('ok', 'PROFIL', `Factoringbolag "${profile.name}" injicerat i XML (BG-10 Payee)`);
+    addThinking('ok', '✓', `Factoringbolag "${profile.name}" injicerat i XML (BG-10 Payee)`);
 
   } else if (profile.type === 'buyer') {
     // Override buyer fields if profile has them
@@ -1437,7 +1437,7 @@ function applyProfileToXML(xml, profile) {
       /(<cac:AccountingCustomerParty>[\s\S]*?<cbc:Name>)([^<]*)/,
       '$1' + esc(profile.name)
     );
-    addLog('ok', 'PROFIL', `Köparprofil "${profile.name}" injicerad i XML`);
+    addThinking('ok', '✓', `Köparprofil "${profile.name}" injicerad i XML`);
 
   } else if (profile.type === 'routing') {
     // Override buyer endpoint
@@ -1447,7 +1447,7 @@ function applyProfileToXML(xml, profile) {
         `$1${esc(profile.scheme)}$2`.replace(/>.*/, `>${esc(profile.endpoint)}`)
       );
     }
-    addLog('ok', 'PROFIL', `Routing-profil injicerad: endpoint ${profile.endpoint}`);
+    addThinking('ok', '✓', `Routing-profil injicerad: endpoint ${profile.endpoint}`);
   }
   return xml;
 }

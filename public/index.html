@@ -333,7 +333,7 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
     </div>
 
     <!-- TESTFAKTUROR -->
-    <div style="margin:0 20px 12px;display:flex;flex-direction:column;gap:6px;">
+    <div id="testFilesSection" style="margin:0 20px 12px;display:flex;flex-direction:column;gap:6px;">
       <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);">
         Testfakturor — klicka för att ladda
       </div>
@@ -366,39 +366,50 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
     <!-- Extracted raw text -->
     <div class="extracted-text" id="extractedText"></div>
 
-    <!-- Settings -->
-    <div style="margin:0 20px 12px;display:flex;flex-direction:column;gap:8px;">
-      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);">Inställningar</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-        <div>
-          <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px;">Valuta (om ej funnen)</label>
-          <select id="fallbackCurrency" style="background:var(--code);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:5px;font-size:12px;width:100%;font-family:inherit;">
-            <option value="SEK">SEK</option><option value="EUR">EUR</option>
-            <option value="NOK">NOK</option><option value="DKK">DKK</option>
-            <option value="USD">USD</option><option value="GBP">GBP</option>
-          </select>
+    <!-- Settings — collapsible -->
+    <div style="margin:0 20px 12px;">
+      <button onclick="toggleSection('settingsBody','settingsChevron')"
+        style="width:100%;display:flex;align-items:center;justify-content:space-between;background:none;border:none;cursor:pointer;padding:0;margin-bottom:6px;font-family:inherit;">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);">Inställningar</div>
+        <span id="settingsChevron" style="color:var(--muted);font-size:14px;transition:transform 0.2s;">▾</span>
+      </button>
+      <div id="settingsBody" style="display:flex;flex-direction:column;gap:8px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div>
+            <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px;">Valuta (om ej funnen)</label>
+            <select id="fallbackCurrency" style="background:var(--code);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:5px;font-size:12px;width:100%;font-family:inherit;">
+              <option value="SEK">SEK</option><option value="EUR">EUR</option>
+              <option value="NOK">NOK</option><option value="DKK">DKK</option>
+              <option value="USD">USD</option><option value="GBP">GBP</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px;">Säljarland (default)</label>
+            <select id="fallbackCountry" style="background:var(--code);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:5px;font-size:12px;width:100%;font-family:inherit;">
+              <option value="SE">SE</option><option value="NO">NO</option>
+              <option value="DK">DK</option><option value="FI">FI</option>
+              <option value="DE">DE</option><option value="GB">GB</option>
+            </select>
+          </div>
         </div>
-        <div>
-          <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px;">Säljarland (default)</label>
-          <select id="fallbackCountry" style="background:var(--code);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:5px;font-size:12px;width:100%;font-family:inherit;">
-            <option value="SE">SE</option><option value="NO">NO</option>
-            <option value="DK">DK</option><option value="FI">FI</option>
-            <option value="DE">DE</option><option value="GB">GB</option>
-          </select>
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(137,87,229,0.08);border:1px solid rgba(137,87,229,0.3);border-radius:6px;">
+          <input type="checkbox" id="strictMode" style="width:14px;height:14px;accent-color:var(--purple);">
+          <label for="strictMode" style="font-size:11px;color:var(--muted);cursor:pointer;">Strict mode — markera osäkra fält</label>
         </div>
-      </div>
-      <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(137,87,229,0.08);border:1px solid rgba(137,87,229,0.3);border-radius:6px;">
-        <input type="checkbox" id="strictMode" style="width:14px;height:14px;accent-color:var(--purple);">
-        <label for="strictMode" style="font-size:11px;color:var(--muted);cursor:pointer;">Strict mode — markera osäkra fält</label>
       </div>
     </div>
 
-    <!-- PROFILER: Factoring & Routing -->
-    <div style="margin:0 20px 12px;display:flex;flex-direction:column;gap:8px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;">
+    <!-- PROFILER — collapsible -->
+    <div style="margin:0 20px 12px;">
+      <button onclick="toggleSection('profilesBody','profilesChevron')"
+        style="width:100%;display:flex;align-items:center;justify-content:space-between;background:none;border:none;cursor:pointer;padding:0;margin-bottom:6px;font-family:inherit;">
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);">Profiler</div>
-        <button onclick="toggleProfileEditor()" style="font-size:10px;color:var(--blue);background:none;border:none;cursor:pointer;font-family:inherit;padding:0;">+ Ny profil</button>
-      </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span id="activeProfileIndicator" style="display:none;width:7px;height:7px;border-radius:50%;background:var(--accent);"></span>
+          <span id="profilesChevron" style="color:var(--muted);font-size:14px;transition:transform 0.2s;">▾</span>
+        </div>
+      </button>
+      <div id="profilesBody" style="display:none;flex-direction:column;gap:8px;">
 
       <!-- Saved profile pills -->
       <div id="profilePills" style="display:flex;flex-wrap:wrap;gap:4px;">
@@ -507,18 +518,25 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
           <button onclick="toggleProfileEditor()" style="padding:6px 10px;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:5px;font-size:11px;cursor:pointer;font-family:inherit;">Avbryt</button>
         </div>
       </div>
-    </div>
+      </div><!-- end profilesBody -->
+    </div><!-- end profiles section -->
 
-    <!-- CONVERT BUTTON -->
-    <button class="convert-btn" id="convertBtn" onclick="startConversion()" disabled>
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-        <path d="M2 8a6 6 0 0 1 6-6 6 6 0 0 1 4.24 1.76" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
-        <path d="M14 8a6 6 0 0 1-6 6 6 6 0 0 1-4.24-1.76" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
-        <path d="M12 2l2.24 1.76L12 5.52" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M4 14L1.76 12.24 4 10.48" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-      Konvertera till PEPPOL XML
-    </button>
+    <!-- CONVERT BUTTON + RESET -->
+    <div style="margin:0 20px 20px;display:flex;gap:8px;">
+      <button class="convert-btn" id="convertBtn" onclick="startConversion()" disabled style="flex:1;margin:0;">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M2 8a6 6 0 0 1 6-6 6 6 0 0 1 4.24 1.76" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+          <path d="M14 8a6 6 0 0 1-6 6 6 6 0 0 1-4.24-1.76" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+          <path d="M12 2l2.24 1.76L12 5.52" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M4 14L1.76 12.24 4 10.48" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Konvertera till PEPPOL XML
+      </button>
+      <button id="resetBtn" onclick="resetApp()" title="Rensa och börja om"
+        style="padding:14px 12px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--muted);cursor:pointer;font-size:16px;transition:all 0.15s;display:none;"
+        onmouseover="this.style.borderColor='var(--danger)';this.style.color='var(--danger)'"
+        onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">↺</button>
+    </div>
 
   </div>
 
@@ -550,10 +568,10 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 
     <!-- OUTPUT TABS -->
     <div class="out-tabs">
-      <button class="out-tab active" onclick="switchOut('ai')">🤖 AI-analys</button>
-      <button class="out-tab" onclick="switchOut('fields')">📋 Extraherade fält</button>
-      <button class="out-tab" onclick="switchOut('xml')">📄 PEPPOL XML</button>
-      <button class="out-tab" onclick="switchOut('rest')">⚡ REST / Postman</button>
+      <button class="out-tab active" id="tab-ai" onclick="switchOut('ai')">🤖 AI-analys</button>
+      <button class="out-tab" id="tab-fields" onclick="switchOut('fields')">📋 Extraherade fält</button>
+      <button class="out-tab" id="tab-xml" onclick="switchOut('xml')">📄 PEPPOL XML</button>
+      <button class="out-tab" id="tab-rest" onclick="switchOut('rest')">⚡ REST / Postman</button>
     </div>
 
     <!-- AI THINKING PANEL -->
@@ -585,6 +603,18 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
     <div class="out-panel" id="out-rest">
       <div style="padding:20px 24px;overflow:auto;flex:1;display:flex;flex-direction:column;gap:16px;">
 
+        <!-- PROJEKT -->
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);">Projekt</div>
+            <div style="display:flex;gap:6px;">
+              <button onclick="saveProject()" style="font-size:10px;color:var(--accent);background:none;border:1px solid var(--accent);border-radius:4px;padding:2px 8px;cursor:pointer;font-family:inherit;">Spara projekt</button>
+              <button onclick="newProject()" style="font-size:10px;color:var(--blue);background:none;border:none;cursor:pointer;font-family:inherit;padding:0;">+ Nytt</button>
+            </div>
+          </div>
+          <div id="projectPills" style="display:flex;flex-wrap:wrap;gap:4px;min-height:24px;"></div>
+        </div>
+
         <!-- FORMAT SELECTOR -->
         <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px;">
           <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:10px;">Välj format att exportera</div>
@@ -613,6 +643,52 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
                 <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--blue);margin-top:4px;">Content-Type: application/xml</div>
               </div>
             </label>
+            <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:8px;border-radius:6px;border:1px solid rgba(210,153,34,0.4);background:rgba(210,153,34,0.05);">
+              <input type="checkbox" id="fmt4" style="margin-top:2px;accent-color:var(--warn);">
+              <div>
+                <div style="font-size:12px;font-weight:600;color:var(--text);">Format 4 — SOAP Envelope</div>
+                <div style="font-size:11px;color:var(--muted);margin-top:2px;">PEPPOL XML inbäddad i SOAP 1.1/1.2 envelope. För äldre ERP-system som SAP, Dynamics, Visma.</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--warn);margin-top:4px;">Content-Type: text/xml; SOAPAction</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- SOAP CONFIG (visas när fmt4 är ibockad) -->
+        <div id="soapConfig" style="display:none;background:rgba(210,153,34,0.06);border:1px solid rgba(210,153,34,0.3);border-radius:8px;padding:14px;">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--warn);margin-bottom:10px;">SOAP-inställningar</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+            <div>
+              <label class="mini-label">SOAP Version</label>
+              <select id="soapVersion" class="mini-input" style="font-family:inherit;">
+                <option value="1.1">SOAP 1.1</option>
+                <option value="1.2">SOAP 1.2</option>
+              </select>
+            </div>
+            <div>
+              <label class="mini-label">SOAPAction</label>
+              <input type="text" id="soapAction" class="mini-input" placeholder="SubmitInvoice">
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div>
+              <label class="mini-label">Namespace prefix</label>
+              <input type="text" id="soapNsPrefix" class="mini-input" placeholder="pep" value="pep">
+            </div>
+            <div>
+              <label class="mini-label">Namespace URI</label>
+              <input type="text" id="soapNsUri" class="mini-input" placeholder="http://www.peppol.eu/invoice" value="http://www.peppol.eu/schema/invoice/v1">
+            </div>
+          </div>
+          <div style="margin-top:8px;">
+            <label class="mini-label">Body wrapper element (lämna tomt för ingen wrapper)</label>
+            <input type="text" id="soapBodyWrapper" class="mini-input" placeholder="SubmitInvoiceRequest" value="SubmitInvoiceRequest">
+          </div>
+          <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
+            <button onclick="loadSoapPreset('generic')" style="font-size:10px;padding:3px 8px;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:4px;cursor:pointer;font-family:inherit;">Generic</button>
+            <button onclick="loadSoapPreset('sap')" style="font-size:10px;padding:3px 8px;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:4px;cursor:pointer;font-family:inherit;">SAP</button>
+            <button onclick="loadSoapPreset('dynamics')" style="font-size:10px;padding:3px 8px;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:4px;cursor:pointer;font-family:inherit;">MS Dynamics</button>
+            <button onclick="loadSoapPreset('visma')" style="font-size:10px;padding:3px 8px;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:4px;cursor:pointer;font-family:inherit;">Visma</button>
           </div>
         </div>
 
@@ -661,6 +737,7 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
       </div>
       <div style="display:flex;gap:8px;">
         <button class="btn btn-ghost" id="copyBtn" onclick="copyXML()" disabled>Kopiera XML</button>
+        <button class="btn btn-ghost" id="copyB64Btn" onclick="copyBase64()" disabled>Kopiera base64</button>
         <button class="btn btn-green" id="downloadBtn" onclick="downloadXML()" disabled>↓ Ladda ner XML</button>
       </div>
     </div>
@@ -753,6 +830,8 @@ function processFile(file) {
 
     setStage('upload', 'done');
     document.getElementById('convertBtn').disabled = false;
+    document.getElementById('resetBtn').style.display = 'flex';
+    document.getElementById('testFilesSection').style.display = 'none';
     addThinking('sys', '📂', `Fil laddad: <strong>${file.name}</strong> (${(file.size/1024).toFixed(1)} KB)`);
     addThinking('sys', '💡', 'Klicka på "Konvertera till PEPPOL XML" för att starta AI-analysen.');
   };
@@ -814,6 +893,7 @@ async function startConversion() {
   document.getElementById('fieldTable').innerHTML = '<div class="empty-state"><div>Extraherar fält...</div></div>';
   document.getElementById('downloadBtn').disabled = true;
   document.getElementById('copyBtn').disabled = true;
+  document.getElementById('copyB64Btn').disabled = true;
   document.getElementById('confBadge').style.display = 'none';
   setProgress(5);
 
@@ -860,12 +940,24 @@ async function startConversion() {
     document.getElementById('statusText').textContent = `✓ Klar · ${currentFileName} → PEPPOL XML`;
     document.getElementById('downloadBtn').disabled = false;
     document.getElementById('copyBtn').disabled = false;
+    document.getElementById('copyB64Btn').disabled = false;
+
+    // Mark tabs as ready with green dot
+    markTabReady('fields');
+    markTabReady('xml');
+    markTabReady('rest');
+
+    // Add quick link to REST in AI log
+    addThinking('sys', '⚡', `<span style="cursor:pointer;color:var(--blue);text-decoration:underline;" onclick="switchOutDirect('rest')">Gå till REST / Postman →</span> för att exportera i JSON, XML, SOAP eller Bruno-format.`);
 
   } catch (err) {
     setStage('vision', 'error');
     addThinking('err', '✗', `<strong>Fel:</strong> ${err.message}`);
     addThinking('sys', '💡', 'Kontrollera att din API-nyckel är korrekt och att filen är en giltig faktura.');
     document.getElementById('statusText').textContent = '✗ Konvertering misslyckades';
+    // Red dropzone border on error
+    document.getElementById('dropzone').style.borderColor = 'var(--danger)';
+    setTimeout(() => { document.getElementById('dropzone').style.borderColor = ''; }, 3000);
     setProgress(0);
   } finally {
     btn.disabled = false;
@@ -997,11 +1089,22 @@ ${strict ? '- Strict mode: inkludera alla osäkerheter i warnings-arrayen' : ''}
     }]
   };
 
-  const res = await fetch('/api/claude', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
-  });
+  const controller = new AbortController();
+  const timeoutId  = setTimeout(() => controller.abort(), 30000);
+  let res;
+  try {
+    res = await fetch('/api/claude', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: controller.signal
+    });
+  } catch (fetchErr) {
+    clearTimeout(timeoutId);
+    if (fetchErr.name === 'AbortError') throw new Error('Timeout — anropet tog längre än 30 sekunder. Försök igen.');
+    throw fetchErr;
+  }
+  clearTimeout(timeoutId);
 
   removeEl(spinner);
 
@@ -1288,7 +1391,82 @@ function switchOut(name) {
   document.querySelectorAll('.out-panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.out-tab').forEach(t => t.classList.remove('active'));
   document.getElementById('out-' + name).classList.add('active');
-  event.target.classList.add('active');
+  const tabEl = document.getElementById('tab-' + name);
+  if (tabEl) tabEl.classList.add('active');
+  // Clear dot on tab when visited
+  if (tabEl) tabEl.style.position = '';
+}
+
+function markTabReady(name) {
+  const tabEl = document.getElementById('tab-' + name);
+  if (!tabEl) return;
+  if (!tabEl.querySelector('.tab-dot')) {
+    const dot = document.createElement('span');
+    dot.className = 'tab-dot';
+    dot.style.cssText = 'display:inline-block;width:6px;height:6px;border-radius:50%;background:#7ee787;margin-left:5px;vertical-align:2px;';
+    tabEl.appendChild(dot);
+  }
+}
+
+function toggleSection(bodyId, chevronId) {
+  const body    = document.getElementById(bodyId);
+  const chevron = document.getElementById(chevronId);
+  const isOpen  = body.style.display !== 'none';
+  body.style.display    = isOpen ? 'none' : 'flex';
+  body.style.flexDirection = 'column';
+  if (chevron) chevron.style.transform = isOpen ? 'rotate(-90deg)' : '';
+}
+
+function resetApp() {
+  uploadedFile = null;
+  uploadedBase64 = null;
+  uploadedMime = null;
+  generatedXML = '';
+  extractedData = null;
+  currentFileName = '';
+
+  // Reset dropzone
+  document.getElementById('dropIcon').textContent = '📄';
+  document.getElementById('dropTitle').textContent = 'Dra och släpp faktura här';
+  document.getElementById('dropSub').textContent = 'PDF, PNG, JPG — faktura på valfritt format';
+  document.getElementById('dropzone').style.borderColor = '';
+
+  // Show test files again
+  document.getElementById('testFilesSection').style.display = 'flex';
+  document.getElementById('pdfPreviewCard').style.display = 'none';
+  document.getElementById('resetBtn').style.display = 'none';
+
+  // Reset panels
+  document.getElementById('xmlViewer').innerHTML = '<span style="color:var(--muted);">// XML genereras efter konvertering</span>';
+  document.getElementById('fieldTable').innerHTML = '<div class="empty-state"><div class="empty-big">📋</div><div>Konvertera en faktura för att se extraherade fält</div></div>';
+  document.getElementById('thinkingArea').innerHTML = '<div class="empty-state"><div class="empty-big">🤖</div><div style="font-size:15px;font-weight:600;color:var(--text);">AI-konverteraren väntar</div><div style="font-size:13px;">Ladda upp en PDF- eller bildfaktura<br>så tolkar Claude innehållet automatiskt.</div></div>';
+  document.getElementById('restOutputArea').style.display = 'none';
+  document.getElementById('restOutputArea').innerHTML = '';
+
+  // Reset buttons
+  document.getElementById('downloadBtn').disabled = true;
+  document.getElementById('copyBtn').disabled = true;
+  document.getElementById('copyB64Btn').disabled = true;
+  document.getElementById('convertBtn').disabled = true;
+  document.getElementById('statusText').textContent = 'Väntar på faktura...';
+  document.getElementById('confBadge').style.display = 'none';
+  document.getElementById('pbar').style.width = '0%';
+
+  // Reset stages
+  ['upload','vision','extract','build','done'].forEach(s => setStage(s, 'pending'));
+
+  // Remove tab dots
+  document.querySelectorAll('.tab-dot').forEach(d => d.remove());
+
+  switchOutDirect('ai');
+}
+
+function switchOutDirect(name) {
+  document.querySelectorAll('.out-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.out-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('out-' + name).classList.add('active');
+  const tabEl = document.getElementById('tab-' + name);
+  if (tabEl) tabEl.classList.add('active');
 }
 
 function copyXML() {
@@ -1297,6 +1475,14 @@ function copyXML() {
   const btn = document.getElementById('copyBtn');
   btn.textContent = '✓ Kopierat!';
   setTimeout(() => btn.textContent = 'Kopiera XML', 2000);
+}
+
+function copyBase64() {
+  if (!uploadedBase64) return;
+  navigator.clipboard.writeText(uploadedBase64);
+  const btn = document.getElementById('copyB64Btn');
+  btn.textContent = '✓ Kopierat!';
+  setTimeout(() => btn.textContent = 'Kopiera base64', 2000);
 }
 
 function downloadXML() {
@@ -1363,6 +1549,9 @@ function renderProfilePills() {
 function selectProfile(id) {
   activeProfileId = id;
   renderProfilePills();
+
+  const indicator = document.getElementById('activeProfileIndicator');
+  if (indicator) indicator.style.display = id === 'ingen' ? 'none' : 'inline-block';
 
   const info = document.getElementById('activeFactoringInfo');
   if (id === 'ingen') {
@@ -1798,6 +1987,401 @@ function dlExport(filename, content, mime) {
   a.download = filename;
   a.click();
 }
+
+// ============================================================
+// SOAP
+// ============================================================
+document.addEventListener('DOMContentLoaded', function() {
+  var fmt4 = document.getElementById('fmt4');
+  if (fmt4) fmt4.addEventListener('change', function() {
+    document.getElementById('soapConfig').style.display = this.checked ? 'block' : 'none';
+  });
+});
+
+const SOAP_PRESETS = {
+  generic: {
+    version: '1.1', action: 'SubmitInvoice',
+    nsPrefix: 'pep', nsUri: 'http://www.peppol.eu/schema/invoice/v1',
+    wrapper: 'SubmitInvoiceRequest'
+  },
+  sap: {
+    version: '1.1', action: 'urn:sap-com:document:sap:soap:functions:mc-style:ZFI_PEPPOL_INVOICE:ZfiPeppolInvoiceRequest',
+    nsPrefix: 'n0', nsUri: 'urn:sap-com:document:sap:soap:functions:mc-style',
+    wrapper: 'ZfiPeppolInvoiceRequest'
+  },
+  dynamics: {
+    version: '1.1', action: 'http://schemas.microsoft.com/dynamics/2008/01/services/PurchOrderService/create',
+    nsPrefix: 'ms', nsUri: 'http://schemas.microsoft.com/dynamics/2008/01/services',
+    wrapper: 'PeppolInvoiceRequest'
+  },
+  visma: {
+    version: '1.1', action: 'SubmitPeppolInvoice',
+    nsPrefix: 'vis', nsUri: 'http://www.visma.com/peppol/invoice/v1',
+    wrapper: 'SubmitPeppolInvoiceRequest'
+  }
+};
+
+function loadSoapPreset(name) {
+  var p = SOAP_PRESETS[name];
+  if (!p) return;
+  document.getElementById('soapVersion').value   = p.version;
+  document.getElementById('soapAction').value    = p.action;
+  document.getElementById('soapNsPrefix').value  = p.nsPrefix;
+  document.getElementById('soapNsUri').value     = p.nsUri;
+  document.getElementById('soapBodyWrapper').value = p.wrapper;
+}
+
+function buildSOAPEnvelope(xml) {
+  var ver     = document.getElementById('soapVersion').value;
+  var action  = document.getElementById('soapAction').value || 'SubmitInvoice';
+  var pfx     = document.getElementById('soapNsPrefix').value || 'pep';
+  var uri     = document.getElementById('soapNsUri').value || 'http://www.peppol.eu/schema/invoice/v1';
+  var wrapper = document.getElementById('soapBodyWrapper').value;
+
+  var envNs   = ver === '1.2'
+    ? 'http://www.w3.org/2003/05/soap-envelope'
+    : 'http://schemas.xmlsoap.org/soap/envelope/';
+
+  var body = wrapper
+    ? '<' + pfx + ':' + wrapper + '>\n    ' + xml.trim() + '\n  </' + pfx + ':' + wrapper + '>'
+    : xml.trim();
+
+  return '<?xml version="1.0" encoding="UTF-8"?>\n' +
+    '<soapenv:Envelope\n' +
+    '  xmlns:soapenv="' + envNs + '"\n' +
+    '  xmlns:' + pfx + '="' + uri + '">\n' +
+    '  <soapenv:Header>\n' +
+    '    <' + pfx + ':Action>' + action + '</' + pfx + ':Action>\n' +
+    '  </soapenv:Header>\n' +
+    '  <soapenv:Body>\n' +
+    '  ' + body + '\n' +
+    '  </soapenv:Body>\n' +
+    '</soapenv:Envelope>';
+}
+
+// ============================================================
+// PROJEKT
+// ============================================================
+const PROJECTS_KEY = 'peppol_projects_v1';
+
+function loadProjects() {
+  try { return JSON.parse(localStorage.getItem(PROJECTS_KEY) || '[]'); } catch { return []; }
+}
+function saveProjectsToStorage(projects) {
+  try { localStorage.setItem(PROJECTS_KEY, JSON.stringify(projects)); } catch {}
+}
+
+function renderProjectPills() {
+  var projects = loadProjects();
+  var container = document.getElementById('projectPills');
+  if (!container) return;
+  container.innerHTML = '';
+  if (projects.length === 0) {
+    container.innerHTML = '<span style="font-size:11px;color:var(--muted);">Inga projekt sparade ännu</span>';
+    return;
+  }
+  projects.forEach(function(p) {
+    var pill = document.createElement('button');
+    pill.style.cssText = 'display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--muted);transition:all 0.15s;font-family:inherit;white-space:nowrap;';
+    pill.innerHTML = '📁 ' + p.name;
+    pill.title = 'Klicka för att ladda · Högerklicka för att ta bort';
+    pill.onclick = function() { loadProject(p.id); };
+    pill.onmouseover = function() { this.style.borderColor='var(--blue)'; this.style.color='var(--blue)'; };
+    pill.onmouseout  = function() { this.style.borderColor='var(--border)'; this.style.color='var(--muted)'; };
+    pill.oncontextmenu = function(e) {
+      e.preventDefault();
+      if (confirm('Ta bort projektet "' + p.name + '"?')) {
+        var ps = loadProjects().filter(function(x){ return x.id !== p.id; });
+        saveProjectsToStorage(ps);
+        renderProjectPills();
+      }
+    };
+    container.appendChild(pill);
+  });
+}
+
+function getCurrentProjectSettings() {
+  return {
+    endpoint:    document.getElementById('restEndpoint').value,
+    authMethod:  document.getElementById('restAuthMethod').value,
+    authValue:   document.getElementById('restAuthValue').value,
+    fmt1: document.getElementById('fmt1').checked,
+    fmt2: document.getElementById('fmt2').checked,
+    fmt3: document.getElementById('fmt3').checked,
+    fmt4: document.getElementById('fmt4').checked,
+    soapVersion: document.getElementById('soapVersion').value,
+    soapAction:  document.getElementById('soapAction').value,
+    soapNsPrefix:document.getElementById('soapNsPrefix').value,
+    soapNsUri:   document.getElementById('soapNsUri').value,
+    soapWrapper: document.getElementById('soapBodyWrapper').value,
+  };
+}
+
+function applyProjectSettings(s) {
+  document.getElementById('restEndpoint').value   = s.endpoint   || '';
+  document.getElementById('restAuthMethod').value = s.authMethod || 'none';
+  document.getElementById('restAuthValue').value  = s.authValue  || '';
+  document.getElementById('fmt1').checked = s.fmt1 !== false;
+  document.getElementById('fmt2').checked = s.fmt2 !== false;
+  document.getElementById('fmt3').checked = s.fmt3 !== false;
+  document.getElementById('fmt4').checked = !!s.fmt4;
+  document.getElementById('soapConfig').style.display = s.fmt4 ? 'block' : 'none';
+  if (s.soapVersion)  document.getElementById('soapVersion').value    = s.soapVersion;
+  if (s.soapAction)   document.getElementById('soapAction').value     = s.soapAction;
+  if (s.soapNsPrefix) document.getElementById('soapNsPrefix').value   = s.soapNsPrefix;
+  if (s.soapNsUri)    document.getElementById('soapNsUri').value      = s.soapNsUri;
+  if (s.soapWrapper)  document.getElementById('soapBodyWrapper').value = s.soapWrapper;
+  updateRestAuthUI();
+}
+
+function saveProject() {
+  var name = prompt('Projektnamn:');
+  if (!name) return;
+  var projects = loadProjects();
+  var existing = projects.find(function(p){ return p.name === name; });
+  var settings = getCurrentProjectSettings();
+  if (existing) {
+    existing.settings = settings;
+    existing.updated = new Date().toISOString();
+  } else {
+    projects.push({ id: 'proj_' + Date.now(), name: name, settings: settings, created: new Date().toISOString() });
+  }
+  saveProjectsToStorage(projects);
+  renderProjectPills();
+  addThinking('ok', '✓', 'Projekt "' + name + '" sparat');
+}
+
+function loadProject(id) {
+  var p = loadProjects().find(function(x){ return x.id === id; });
+  if (!p) return;
+  applyProjectSettings(p.settings);
+  addThinking('sys', '📁', 'Projekt "' + p.name + '" laddat');
+}
+
+function newProject() {
+  applyProjectSettings({});
+  document.getElementById('restEndpoint').value = '';
+  addThinking('sys', '📁', 'Nytt projekt — fyll i inställningar och spara');
+}
+
+// Init projects on load
+document.addEventListener('DOMContentLoaded', function() {
+  renderProjectPills();
+});
+
+// ============================================================
+// BRUNO COLLECTION EXPORT
+// ============================================================
+function buildBrunoCollection(items, collectionName) {
+  // Bruno uses .bru file format per request + meta.json
+  var files = {};
+
+  // meta.json
+  files['meta.json'] = JSON.stringify({
+    name: collectionName,
+    version: '1',
+    type: 'collection'
+  }, null, 2);
+
+  // One .bru file per request
+  items.forEach(function(item) {
+    var headers = item.headers || {};
+    var headerLines = Object.entries(headers).map(function(e){
+      return '  ' + e[0] + ': ' + e[1];
+    }).join('\n');
+
+    var bodySection = '';
+    if (item.bodyType === 'json') {
+      bodySection = 'body:json {\n' + item.body + '\n}';
+    } else if (item.bodyType === 'xml') {
+      bodySection = 'body:xml {\n' + item.body + '\n}';
+    } else if (item.bodyType === 'text') {
+      bodySection = 'body:text {\n' + item.body + '\n}';
+    }
+
+    var bru =
+      'meta {\n' +
+      '  name: ' + item.name + '\n' +
+      '  type: http\n' +
+      '  seq: ' + item.seq + '\n' +
+      '}\n\n' +
+      'post {\n' +
+      '  url: ' + item.url + '\n' +
+      '}\n\n' +
+      'headers {\n' + headerLines + '\n}\n\n' +
+      bodySection;
+
+    files[item.name.replace(/[^a-zA-Z0-9]/g, '_') + '.bru'] = bru;
+  });
+
+  return files;
+}
+
+function downloadBrunoCollection(items, name, fname) {
+  // Download as a zip-like structure — one JSON with all files
+  // (Bruno can also import from a folder; we export as JSON manifest)
+  var manifest = {
+    _note: 'Extrahera filerna till en mapp och öppna i Bruno som Collection',
+    collection: name,
+    files: buildBrunoCollection(items, name)
+  };
+  var key = storeDl(JSON.stringify(manifest, null, 2), 'application/json');
+  dlByKey(fname + '_bruno.json', key);
+}
+
+// ============================================================
+// PATCHED generateRestExports — adds SOAP + Bruno
+// ============================================================
+async function generateRestExports() {
+  if (!generatedXML || !uploadedBase64) {
+    alert('Konvertera en faktura först!');
+    return;
+  }
+
+  var endpoint = document.getElementById('restEndpoint').value.trim() || 'https://ert-system.se/api/faktura';
+  var headers  = getRestHeaders();
+  var fname    = currentFileName || 'faktura.pdf';
+  var fmt1     = document.getElementById('fmt1').checked;
+  var fmt2     = document.getElementById('fmt2').checked;
+  var fmt3     = document.getElementById('fmt3').checked;
+  var fmt4     = document.getElementById('fmt4').checked;
+
+  if (!fmt1 && !fmt2 && !fmt3 && !fmt4) { alert('Välj minst ett format!'); return; }
+
+  var area = document.getElementById('restOutputArea');
+  area.style.display = 'flex';
+  area.innerHTML = '';
+
+  var postmanItems = [];
+  var brunoItems   = [];
+  var seq = 1;
+
+  // FORMAT 1 — JSON + base64
+  if (fmt1) {
+    var body1 = JSON.stringify({
+      filename: fname, contentType: uploadedMime,
+      content: uploadedBase64, peppolXml: generatedXML,
+      metadata: { generatedAt: new Date().toISOString(), standard: 'PEPPOL BIS Billing 3.0', format: 'UBL 2.1' }
+    }, null, 2);
+    var h1 = Object.assign({ 'Content-Type': 'application/json' }, headers);
+    area.appendChild(buildExportCard('Format 1 — JSON med base64', 'application/json',
+      buildCurlCmd(endpoint, h1, '--data @body.json'),
+      body1.substring(0, 400) + '\n...',
+      fname.replace(/\.[^.]+$/, '') + '_format1.json', body1, 'application/json'));
+    postmanItems.push(buildPostmanItem('Format 1 — JSON base64', endpoint, h1,
+      { mode:'raw', raw: body1, options:{ raw:{ language:'json' }}}));
+    brunoItems.push({ name: 'Format 1 JSON base64', url: endpoint, headers: h1, body: body1, bodyType: 'json', seq: seq++ });
+  }
+
+  // FORMAT 2 — Multipart
+  if (fmt2) {
+    var boundary = '----PeppolBoundary' + Date.now();
+    var preview2 = '--' + boundary + '\nContent-Disposition: form-data; name="file"; filename="' + fname + '"\nContent-Type: ' + uploadedMime + '\n\n[Binär PDF — ' + (uploadedBase64.length * 0.75 / 1024).toFixed(1) + ' KB]\n--' + boundary + '\nContent-Disposition: form-data; name="peppolXml"\nContent-Type: application/xml\n\n' + generatedXML.substring(0, 150) + '\n...\n--' + boundary + '--';
+    var h2 = Object.assign({}, headers);
+    var curl2 = 'curl -X POST "' + endpoint + '" \\\n' +
+      Object.entries(h2).map(function(e){ return '  -H "' + e[0] + ': ' + e[1] + '" \\'; }).join('\n') +
+      (Object.keys(h2).length ? '\n' : '') +
+      '  -F "file=@' + fname + ';type=' + uploadedMime + '" \\\n  -F "peppolXml=<peppol.xml;type=application/xml"';
+    area.appendChild(buildExportCard('Format 2 — Multipart/form-data', 'multipart/form-data',
+      curl2, preview2, fname.replace(/\.[^.]+$/, '') + '_format2_curl.sh', curl2, 'text/plain'));
+    postmanItems.push(buildPostmanItem('Format 2 — Multipart', endpoint, h2,
+      { mode:'formdata', formdata:[{ key:'file', type:'file', src: fname }, { key:'peppolXml', value: generatedXML, type:'text', contentType:'application/xml' }]}));
+    brunoItems.push({ name: 'Format 2 Multipart', url: endpoint, headers: h2, body: curl2, bodyType: 'text', seq: seq++ });
+  }
+
+  // FORMAT 3 — Ren XML
+  if (fmt3) {
+    var h3 = Object.assign({ 'Content-Type': 'application/xml' }, headers);
+    area.appendChild(buildExportCard('Format 3 — Ren PEPPOL XML', 'application/xml',
+      buildCurlCmd(endpoint, h3, '--data-binary @peppol.xml'),
+      generatedXML.substring(0, 400) + '\n...',
+      fname.replace(/\.[^.]+$/, '') + '_format3_peppol.xml', generatedXML, 'application/xml'));
+    postmanItems.push(buildPostmanItem('Format 3 — Ren XML', endpoint, h3,
+      { mode:'raw', raw: generatedXML, options:{ raw:{ language:'xml' }}}));
+    brunoItems.push({ name: 'Format 3 Ren XML', url: endpoint, headers: h3, body: generatedXML, bodyType: 'xml', seq: seq++ });
+  }
+
+  // FORMAT 4 — SOAP
+  if (fmt4) {
+    var soapEnv  = buildSOAPEnvelope(generatedXML);
+    var soapVer  = document.getElementById('soapVersion').value;
+    var soapAct  = document.getElementById('soapAction').value || 'SubmitInvoice';
+    var soapCt   = soapVer === '1.2' ? 'application/soap+xml' : 'text/xml';
+    var h4       = Object.assign({ 'Content-Type': soapCt + '; charset=utf-8', 'SOAPAction': '"' + soapAct + '"' }, headers);
+    area.appendChild(buildExportCard('Format 4 — SOAP ' + soapVer + ' Envelope', soapCt,
+      buildCurlCmd(endpoint, h4, '--data @soap_envelope.xml'),
+      soapEnv.substring(0, 500) + '\n...',
+      fname.replace(/\.[^.]+$/, '') + '_format4_soap.xml', soapEnv, 'text/xml'));
+    postmanItems.push(buildPostmanItem('Format 4 — SOAP ' + soapVer, endpoint, h4,
+      { mode:'raw', raw: soapEnv, options:{ raw:{ language:'xml' }}}));
+    brunoItems.push({ name: 'Format 4 SOAP ' + soapVer, url: endpoint, headers: h4, body: soapEnv, bodyType: 'xml', seq: seq++ });
+  }
+
+  // POSTMAN COLLECTION
+  if (postmanItems.length) {
+    var collection = {
+      info: { name: 'PEPPOL — ' + fname, description: 'Genererad av PEPPOL PDF Converter', schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json' },
+      item: postmanItems,
+      variable: [{ key:'baseUrl', value: endpoint, type:'string' }]
+    };
+    area.appendChild(buildPostmanCard(JSON.stringify(collection, null, 2), fname.replace(/\.[^.]+$/, '') + '_postman_collection.json'));
+  }
+
+  // BRUNO COLLECTION
+  if (brunoItems.length) {
+    var brunoCard = document.createElement('div');
+    brunoCard.style.cssText = 'background:linear-gradient(135deg,rgba(35,134,54,0.15),rgba(31,111,235,0.08));border:1px solid rgba(35,134,54,0.4);border-radius:8px;padding:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;';
+    brunoCard.innerHTML = '<div>' +
+      '<div style="font-size:13px;font-weight:700;color:#7ee787;">🐶 Bruno Collection</div>' +
+      '<div style="font-size:11px;color:var(--muted);margin-top:3px;">Open source · lokalt · GDPR-säkert · importera i Bruno</div>' +
+      '</div>';
+    var brunoBtn = document.createElement('button');
+    brunoBtn.textContent = '↓ Ladda ner Bruno';
+    brunoBtn.style.cssText = 'padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;';
+    var brunoFname = fname.replace(/\.[^.]+$/, '');
+    brunoBtn.onclick = function() { downloadBrunoCollection(brunoItems, 'PEPPOL — ' + fname, brunoFname); };
+    brunoCard.appendChild(brunoBtn);
+    area.appendChild(brunoCard);
+  }
+}
+// ============================================================
+// SOAP ENVELOPE BUILDER
+// ============================================================
+function buildSOAPEnvelope(peppolXml) {
+  var ver     = document.getElementById('soapVersion').value;
+  var action  = document.getElementById('soapAction').value  || 'SubmitInvoice';
+  var prefix  = document.getElementById('soapNsPrefix').value || 'pep';
+  var nsUri   = document.getElementById('soapNsUri').value   || 'http://www.peppol.eu/schema/invoice/v1';
+  var wrapper = document.getElementById('soapBodyWrapper').value || 'SubmitInvoiceRequest';
+
+  var envNs   = ver === '1.2'
+    ? 'http://www.w3.org/2003/05/soap-envelope'
+    : 'http://schemas.xmlsoap.org/soap/envelope/';
+
+  var header = ver === '1.2' ? '' :
+    '  <soapenv:Header>\n' +
+    '    <' + prefix + ':Action xmlns:' + prefix + '="' + nsUri + '">' + action + '</' + prefix + ':Action>\n' +
+    '  </soapenv:Header>\n';
+
+  var innerXml = peppolXml
+    .replace(/<\?xml[^?]*\?>\n?/, '')  // remove XML declaration
+    .split('\n')
+    .map(function(l){ return '      ' + l; })
+    .join('\n');
+
+  return '<?xml version="1.0" encoding="UTF-8"?>\n' +
+    '<soapenv:Envelope\n' +
+    '  xmlns:soapenv="' + envNs + '"\n' +
+    '  xmlns:' + prefix + '="' + nsUri + '">\n' +
+    header +
+    '  <soapenv:Body>\n' +
+    (wrapper ? '    <' + prefix + ':' + wrapper + '>\n' : '') +
+    innerXml + '\n' +
+    (wrapper ? '    </' + prefix + ':' + wrapper + '>\n' : '') +
+    '  </soapenv:Body>\n' +
+    '</soapenv:Envelope>';
+}
+
 </script>
 </body>
 </html>

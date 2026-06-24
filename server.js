@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const path    = require('path');
 
@@ -42,7 +43,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.options('/api/claude', (_req, res) => res.sendStatus(200));
 
 app.post('/api/claude', async (req, res) => {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = (process.env.ANTHROPIC_API_KEY || "").trim();
+  console.log("[debug] apiKey length:", apiKey.length, "first 15:", apiKey.substring(0,15));
 
   if (!apiKey) {
     return res.status(500).json({
@@ -71,53 +73,48 @@ app.post('/api/claude', async (req, res) => {
 });
 
 // ─── PEPPOL Validator proxy ───────────────────────────────────────────────────
-// Proxar anrop till EU-kommissionens officiella PEPPOL-validator
-// Löser CORS-problemet — webbläsaren → vår server → EU-validator
 app.post('/api/validate', async (req, res) => {
   try {
-    const xmlBody = req.body; // raw XML string
+    const xmlBody = req.body;
 
     if (!xmlBody || typeof xmlBody !== 'string') {
-      return res.status(400).json({ error: 'XML body saknas' });
+      console.error('[validate] Ingen XML-body mottagen. Content-Type:', req.headers['content-type']);
+      return res.status(400).json({ error: 'XML body saknas', contentType: req.headers['content-type'] });
     }
 
-    // Bygg multipart/form-data manuellt — ingen extra lib behövs
-    const boundary = '----PeppolValidatorBoundary' + Date.now();
+    console.log(`[validate] Mottog ${xmlBody.length} bytes XML`);
+
+    const boundary = '----PeppolBoundary' + Date.now();
     const xmlBuffer = Buffer.from(xmlBody, 'utf8');
 
-    const parts = [
-      `--${boundary}\r\n`,
-      `Content-Disposition: form-data; name="file"; filename="invoice.xml"\r\n`,
-      `Content-Type: application/xml\r\n`,
-      `\r\n`,
-    ].join('');
+    const header = Buffer.from(
+      `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="invoice.xml"\r\nContent-Type: application/xml\r\n\r\n`,
+      'utf8'
+    );
+    const footer = Buffer.from(`\r\n--${boundary}\r\nContent-Disposition: form-data; name="type"\r\n\r\ninvoice\r\n--${boundary}--\r\n`, 'utf8');
+    const body   = Buffer.concat([header, xmlBuffer, footer]);
 
-    const end = `\r\n--${boundary}--\r\n`;
-
-    const body = Buffer.concat([
-      Buffer.from(parts, 'utf8'),
-      xmlBuffer,
-      Buffer.from(end, 'utf8'),
-    ]);
-
-    console.log(`[validate] Skickar ${xmlBuffer.length} bytes till EU-validator`);
+    console.log(`[validate] Skickar ${body.length} bytes till EU-validator`);
 
     const upstream = await fetch(
-      'https://www.itb.ec.europa.eu/invoice/api/validate?type=invoice',
+      'https://www.itb.ec.europa.eu/invoice/api/validate',
       {
         method:  'POST',
         headers: {
           'Content-Type':   `multipart/form-data; boundary=${boundary}`,
-          'Content-Length': String(body.length),
           'Accept':         'application/json',
         },
         body,
+        signal: AbortSignal.timeout(15000),
       }
     );
 
+    console.log(`[validate] EU svarade: HTTP ${upstream.status}`);
+
+    const text = await upstream.text();
+    console.log(`[validate] Svar (första 300 bytes):`, text.substring(0, 300));
+
     if (!upstream.ok) {
-      const text = await upstream.text();
-      console.error('[validate] EU API svarade', upstream.status, text.substring(0, 200));
       return res.status(upstream.status).json({
         error: 'EU-validatorn svarade med fel',
         status: upstream.status,
@@ -125,9 +122,12 @@ app.post('/api/validate', async (req, res) => {
       });
     }
 
-    const data = await upstream.json();
-    console.log(`[validate] Svar mottaget — ${JSON.stringify(data).length} bytes`);
-    res.json(data);
+    try {
+      const data = JSON.parse(text);
+      res.json(data);
+    } catch {
+      res.status(502).json({ error: 'EU-validatorn returnerade icke-JSON', raw: text.substring(0, 500) });
+    }
 
   } catch (err) {
     console.error('[validate proxy error]', err.message);

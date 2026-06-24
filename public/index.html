@@ -418,6 +418,24 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
           <div style="font-size:11px;color:var(--muted);">Med avrundning BT-114 · -0,17 SEK</div>
         </div>
       </button>
+      <button onclick="loadTestFile('testfaktura-ned%C3%A5t.pdf','Nedåtavrundning — 22 öre (0–49)')"
+        style="display:flex;align-items:center;gap:10px;background:var(--surface2);border:1px solid rgba(220,38,38,0.3);border-radius:6px;padding:8px 12px;cursor:pointer;text-align:left;transition:border-color 0.15s;font-family:inherit;"
+        onmouseover="this.style.borderColor='#dc2626'" onmouseout="this.style.borderColor='rgba(220,38,38,0.3)'">
+        <span style="font-size:20px;">📉</span>
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--text);">testfaktura-nedåt.pdf</div>
+          <div style="font-size:11px;color:#dc2626;">Avrundning nedåt ↓ · 22 öre · BT-114: -0,22 SEK</div>
+        </div>
+      </button>
+      <button onclick="loadTestFile('testfaktura-upp%C3%A5t.pdf','Uppåtavrundning — 76 öre (50–99)')"
+        style="display:flex;align-items:center;gap:10px;background:var(--surface2);border:1px solid rgba(22,163,74,0.3);border-radius:6px;padding:8px 12px;cursor:pointer;text-align:left;transition:border-color 0.15s;font-family:inherit;"
+        onmouseover="this.style.borderColor='#16a34a'" onmouseout="this.style.borderColor='rgba(22,163,74,0.3)'">
+        <span style="font-size:20px;">📈</span>
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--text);">testfaktura-uppåt.pdf</div>
+          <div style="font-size:11px;color:#16a34a;">Avrundning uppåt ↑ · 76 öre · BT-114: +0,24 SEK</div>
+        </div>
+      </button>
     </div>
 
     <!-- PDF / Image preview -->
@@ -3503,7 +3521,7 @@ function recalcCF() {
   const vat    = net * vatPct / 100;
   const gross  = net + vat;
   const doRound = document.getElementById('cf-rounding').checked;
-  const rounded = doRound ? Math.floor(gross) : gross;
+  const rounded = doRound ? Math.round(gross) : gross;
   const rounding = doRound ? rounded - gross : 0;
 
   document.getElementById('cf-sumNet').textContent    = net.toLocaleString('sv-SE',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -3546,7 +3564,7 @@ function getCFData() {
   const vat    = net * vatPct / 100;
   const gross  = net + vat;
   const doRound = document.getElementById('cf-rounding').checked;
-  const payable = doRound ? Math.floor(gross) : gross;
+  const payable = doRound ? Math.round(gross) : gross;
   const rounding = doRound ? payable - gross : 0;
 
   return {

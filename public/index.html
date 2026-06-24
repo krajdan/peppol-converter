@@ -24,6 +24,23 @@
   --purple:  #8957e5;
 }
 
+body.light {
+  --bg:      #f6f8fa;
+  --surface: #ffffff;
+  --surface2:#f0f2f4;
+  --border:  #d0d7de;
+  --accent:  #1a7f37;
+  --accentH: #2da44e;
+  --blue:    #0969da;
+  --blueH:   #0550ae;
+  --warn:    #9a6700;
+  --danger:  #cf222e;
+  --text:    #1f2328;
+  --muted:   #636c76;
+  --code:    #f6f8fa;
+  --purple:  #6e40c9;
+}
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
 .mono { font-family: 'JetBrains Mono', monospace; }
@@ -274,6 +291,7 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 
 @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
 .fade-in { animation:fadeIn 0.3s ease forwards; }
+@keyframes previewPulse { 0%,100% { opacity:1; } 50% { opacity:0.25; } }
 
 .profile-pill {
   display:inline-flex; align-items:center; gap:5px; padding:3px 10px;
@@ -307,14 +325,42 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
       <rect x="13" y="11" width="8" height="10" rx="1.5" fill="#238636" opacity="0.9"/>
       <path d="M15 14h4M15 17h2" stroke="#7ee787" stroke-width="1" stroke-linecap="round"/>
     </svg>
-    PDF → PEPPOL Converter
+    <span id="appTitle">PDF → PEPPOL Converter</span>
     <span class="chip chip-ai">AI-POWERED</span>
     <span class="chip chip-peppol">BIS 3.0</span>
   </div>
-  <div style="display:flex;align-items:center;gap:16px;">
+  <div style="display:flex;align-items:center;gap:10px;">
+    <!-- History button -->
+    <button onclick="toggleHistory()" id="historyBtn" title="Historik"
+      style="background:transparent;border:1px solid var(--border);border-radius:6px;padding:5px 10px;color:var(--muted);cursor:pointer;font-size:12px;font-family:inherit;display:flex;align-items:center;gap:5px;transition:all 0.15s;"
+      onmouseover="this.style.borderColor='var(--accent)';this.style.color='#7ee787'"
+      onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">
+      🕐 <span id="historyCount">0</span>
+    </button>
+    <!-- Language toggle -->
+    <button onclick="toggleLang()" id="langBtn"
+      style="background:transparent;border:1px solid var(--border);border-radius:6px;padding:5px 10px;color:var(--muted);cursor:pointer;font-size:11px;font-weight:600;font-family:'JetBrains Mono',monospace;transition:all 0.15s;"
+      onmouseover="this.style.borderColor='var(--blue)';this.style.color='#79c0ff'"
+      onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">SV</button>
+    <!-- Theme toggle -->
+    <button onclick="toggleTheme()" id="themeBtn" title="Byt tema"
+      style="background:transparent;border:1px solid var(--border);border-radius:6px;padding:5px 10px;color:var(--muted);cursor:pointer;font-size:14px;transition:all 0.15s;"
+      onmouseover="this.style.borderColor='var(--blue)';this.style.color='#79c0ff'"
+      onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">🌙</button>
     <span class="mono" style="font-size:11px;color:var(--muted);">Claude Sonnet · Vision + XML</span>
   </div>
 </header>
+
+<!-- HISTORY DRAWER -->
+<div id="historyDrawer" style="display:none;position:fixed;top:56px;right:0;width:340px;height:calc(100vh - 56px);background:var(--surface);border-left:1px solid var(--border);z-index:200;flex-direction:column;overflow:hidden;">
+  <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+    <span style="font-size:12px;font-weight:700;color:var(--text);" id="historyTitle">Historik (senaste 10)</span>
+    <button onclick="clearHistory()" style="font-size:11px;color:var(--danger);background:none;border:none;cursor:pointer;font-family:inherit;">Rensa</button>
+  </div>
+  <div id="historyList" style="flex:1;overflow:auto;padding:8px;display:flex;flex-direction:column;gap:6px;">
+    <div style="padding:40px;text-align:center;color:var(--muted);font-size:12px;" id="historyEmpty">Inga konverteringar ännu</div>
+  </div>
+</div>
 
 <div class="pbar"><div class="pfill" id="pbar" style="width:0%"></div></div>
 
@@ -323,6 +369,23 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 
   <!-- LEFT: UPLOAD + CONTROLS -->
   <div class="left-panel">
+
+    <!-- MODE SWITCHER -->
+    <div style="display:flex;gap:0;margin:12px 20px 8px;background:var(--code);border-radius:8px;padding:3px;border:1px solid var(--border);">
+      <button id="modeUpload" onclick="setMode('upload')"
+        style="flex:1;padding:7px;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all 0.15s;background:var(--accent);color:#fff;">
+        📄 Ladda upp PDF
+      </button>
+      <button id="modeCreate" onclick="setMode('create')"
+        style="flex:1;padding:7px;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all 0.15s;background:transparent;color:var(--muted);">
+        ✏️ Skapa faktura
+      </button>
+    </div>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- UPLOAD MODE                                 -->
+    <!-- ═══════════════════════════════════════════ -->
+    <div id="uploadMode">
 
     <!-- DROP ZONE -->
     <div class="dropzone" id="dropzone" ondrop="handleDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
@@ -538,7 +601,239 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
         onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">↺</button>
     </div>
 
-  </div>
+    </div><!-- end uploadMode -->
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- CREATE MODE                                 -->
+    <!-- ═══════════════════════════════════════════ -->
+    <div id="createMode" style="display:none;flex-direction:column;overflow-y:auto;flex:1;padding-bottom:8px;">
+
+      <!-- SEKTION: Fakturahuvud -->
+      <div style="margin:0 20px 10px;">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:6px;">Faktura</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+          <div>
+            <label class="mini-label">Fakturanummer*</label>
+            <input type="text" id="cf-invoiceId" class="mini-input" placeholder="2026-001">
+          </div>
+          <div>
+            <label class="mini-label">Typ</label>
+            <select id="cf-invoiceType" class="mini-input" style="font-family:inherit;">
+              <option value="380">380 — Faktura</option>
+              <option value="381">381 — Kreditnota</option>
+            </select>
+          </div>
+          <div>
+            <label class="mini-label">Fakturadatum*</label>
+            <input type="date" id="cf-issueDate" class="mini-input">
+          </div>
+          <div>
+            <label class="mini-label">Förfallodatum</label>
+            <input type="date" id="cf-dueDate" class="mini-input">
+          </div>
+          <div>
+            <label class="mini-label">Valuta</label>
+            <select id="cf-currency" class="mini-input" style="font-family:inherit;">
+              <option value="SEK">SEK</option><option value="EUR">EUR</option>
+              <option value="NOK">NOK</option><option value="DKK">DKK</option>
+              <option value="USD">USD</option><option value="GBP">GBP</option>
+            </select>
+          </div>
+          <div>
+            <label class="mini-label">OCR / Betalningsref</label>
+            <input type="text" id="cf-paymentRef" class="mini-input" placeholder="123456789">
+          </div>
+        </div>
+        <div style="margin-top:6px;">
+          <label class="mini-label">Betalningsvillkor</label>
+          <input type="text" id="cf-paymentTerms" class="mini-input" placeholder="30 dagar netto" oninput="scheduleLivePreview()">
+        </div>
+        <div style="margin-top:6px;">
+          <label class="mini-label">Anteckning</label>
+          <input type="text" id="cf-note" class="mini-input" placeholder="Valfri anteckning" oninput="scheduleLivePreview()">
+        </div>
+      </div>
+
+      <div style="height:1px;background:var(--border);margin:4px 20px 10px;"></div>
+
+      <!-- SEKTION: Säljare -->
+      <div style="margin:0 20px 10px;">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:6px;">Säljare</div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <div>
+            <label class="mini-label">Företagsnamn*</label>
+            <input type="text" id="cf-sellerName" class="mini-input" placeholder="Struktur Digital AB" oninput="scheduleLivePreview()">
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+            <div>
+              <label class="mini-label">Org.nummer*</label>
+              <input type="text" id="cf-sellerOrgNo" class="mini-input" placeholder="5591234567">
+            </div>
+            <div>
+              <label class="mini-label">VAT-nr</label>
+              <input type="text" id="cf-sellerVat" class="mini-input" placeholder="SE559123456701">
+            </div>
+          </div>
+          <div>
+            <label class="mini-label">Gatuadress</label>
+            <input type="text" id="cf-sellerStreet" class="mini-input" placeholder="Exempelvägen 1">
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 60px;gap:6px;">
+            <div>
+              <label class="mini-label">Postnummer</label>
+              <input type="text" id="cf-sellerZip" class="mini-input" placeholder="70210">
+            </div>
+            <div>
+              <label class="mini-label">Stad</label>
+              <input type="text" id="cf-sellerCity" class="mini-input" placeholder="Örebro">
+            </div>
+            <div>
+              <label class="mini-label">Land</label>
+              <select id="cf-sellerCountry" class="mini-input" style="font-family:inherit;">
+                <option value="SE">SE</option><option value="NO">NO</option>
+                <option value="DK">DK</option><option value="FI">FI</option>
+                <option value="DE">DE</option><option value="GB">GB</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+            <div>
+              <label class="mini-label">Bankgiro / IBAN</label>
+              <input type="text" id="cf-sellerBank" class="mini-input" placeholder="1234-5678">
+            </div>
+            <div>
+              <label class="mini-label">E-post</label>
+              <input type="text" id="cf-sellerEmail" class="mini-input" placeholder="faktura@foretag.se">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="height:1px;background:var(--border);margin:4px 20px 10px;"></div>
+
+      <!-- SEKTION: Köpare -->
+      <div style="margin:0 20px 10px;">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:6px;">Köpare</div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <div>
+            <label class="mini-label">Företagsnamn*</label>
+            <input type="text" id="cf-buyerName" class="mini-input" placeholder="Testköparen AB">
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+            <div>
+              <label class="mini-label">Org.nummer</label>
+              <input type="text" id="cf-buyerOrgNo" class="mini-input" placeholder="5560001234">
+            </div>
+            <div>
+              <label class="mini-label">VAT-nr</label>
+              <input type="text" id="cf-buyerVat" class="mini-input" placeholder="SE556000123401">
+            </div>
+          </div>
+          <div>
+            <label class="mini-label">Gatuadress</label>
+            <input type="text" id="cf-buyerStreet" class="mini-input" placeholder="Köparvägen 10">
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 60px;gap:6px;">
+            <div>
+              <label class="mini-label">Postnummer</label>
+              <input type="text" id="cf-buyerZip" class="mini-input" placeholder="41101">
+            </div>
+            <div>
+              <label class="mini-label">Stad</label>
+              <input type="text" id="cf-buyerCity" class="mini-input" placeholder="Göteborg">
+            </div>
+            <div>
+              <label class="mini-label">Land</label>
+              <select id="cf-buyerCountry" class="mini-input" style="font-family:inherit;">
+                <option value="SE">SE</option><option value="NO">NO</option>
+                <option value="DK">DK</option><option value="FI">FI</option>
+                <option value="DE">DE</option><option value="GB">GB</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label class="mini-label">Köparreferens* (BT-10)</label>
+            <input type="text" id="cf-buyerRef" class="mini-input" placeholder="REF-2026-001">
+          </div>
+        </div>
+      </div>
+
+      <div style="height:1px;background:var(--border);margin:4px 20px 10px;"></div>
+
+      <!-- SEKTION: Moms -->
+      <div style="margin:0 20px 10px;">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:6px;">Moms</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+          <div>
+            <label class="mini-label">Momskategori</label>
+            <select id="cf-vatCategory" class="mini-input" style="font-family:inherit;" onchange="updateCFVat()">
+              <option value="S">S — Standardsats</option>
+              <option value="AE">AE — Omvänd moms</option>
+              <option value="K">K — EU gemenskapsintern</option>
+              <option value="G">G — Export utanför EU</option>
+              <option value="E">E — Undantagen</option>
+              <option value="Z">Z — Nollsats</option>
+            </select>
+          </div>
+          <div>
+            <label class="mini-label">Momssats %</label>
+            <select id="cf-vatPercent" class="mini-input" style="font-family:inherit;" onchange="recalcCF()">
+              <option value="25">25%</option>
+              <option value="12">12%</option>
+              <option value="6">6%</option>
+              <option value="0">0%</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-top:6px;display:flex;align-items:center;gap:8px;">
+          <input type="checkbox" id="cf-rounding" style="accent-color:var(--accent);width:14px;height:14px;" onchange="recalcCF()">
+          <label for="cf-rounding" style="font-size:11px;color:var(--muted);cursor:pointer;">Avrundning till heltal (BT-114)</label>
+        </div>
+      </div>
+
+      <div style="height:1px;background:var(--border);margin:4px 20px 10px;"></div>
+
+      <!-- SEKTION: Fakturarader -->
+      <div style="margin:0 20px 10px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);">Fakturarader</div>
+          <button onclick="addCFLine()" style="font-size:10px;padding:3px 8px;background:var(--accent);color:#fff;border:none;border-radius:4px;cursor:pointer;font-family:inherit;">+ Rad</button>
+        </div>
+        <div id="cf-linesContainer" style="display:flex;flex-direction:column;gap:6px;"></div>
+      </div>
+
+      <!-- SUMMERING -->
+      <div style="margin:0 20px 10px;background:var(--code);border-radius:6px;padding:10px;font-size:12px;font-family:'JetBrains Mono',monospace;">
+        <div style="display:flex;justify-content:space-between;color:var(--muted);margin-bottom:4px;">
+          <span>Netto exkl. moms</span><span id="cf-sumNet">0,00</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;color:var(--warn);margin-bottom:4px;">
+          <span>Moms (<span id="cf-sumVatPct">25</span>%)</span><span id="cf-sumVat">0,00</span>
+        </div>
+        <div id="cf-roundingRow" style="display:none;justify-content:space-between;color:var(--muted);margin-bottom:4px;font-size:11px;">
+          <span>Avrundning (BT-114)</span><span id="cf-sumRounding">0,00</span>
+        </div>
+        <div style="height:1px;background:var(--border);margin:6px 0;"></div>
+        <div style="display:flex;justify-content:space-between;color:#7ee787;font-weight:600;font-size:13px;">
+          <span>Att betala</span><span id="cf-sumTotal">0,00</span>
+        </div>
+      </div>
+
+      <!-- GENERATE BUTTONS -->
+      <div style="margin:0 20px 12px;display:flex;gap:6px;">
+        <button onclick="generateFromForm(false)"
+          style="flex:1;padding:12px;background:var(--accent);border:none;border-radius:8px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">
+          📄 Generera PDF
+        </button>
+        <button onclick="generateFromForm(true)"
+          style="flex:1;padding:12px;background:linear-gradient(135deg,#8957e5,#1f6feb);border:none;border-radius:8px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">
+          ⚡ PDF + PEPPOL XML
+        </button>
+      </div>
+
+    </div><!-- end createMode -->
+
+  </div><!-- end left-panel -->
 
   <!-- RIGHT: OUTPUT -->
   <div class="right-panel">
@@ -568,9 +863,11 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 
     <!-- OUTPUT TABS -->
     <div class="out-tabs">
-      <button class="out-tab active" id="tab-ai" onclick="switchOut('ai')">🤖 AI-analys</button>
-      <button class="out-tab" id="tab-fields" onclick="switchOut('fields')">📋 Extraherade fält</button>
+      <button class="out-tab active" id="tab-ai" onclick="switchOut('ai')">🤖 <span class="t-ai-label">AI-analys</span></button>
+      <button class="out-tab" id="tab-fields" onclick="switchOut('fields')">📋 <span class="t-fields-label">Extraherade fält</span></button>
       <button class="out-tab" id="tab-xml" onclick="switchOut('xml')">📄 PEPPOL XML</button>
+      <button class="out-tab" id="tab-preview" onclick="switchOut('preview')">👁 <span class="t-preview-label">Förhandsgranskning</span></button>
+      <button class="out-tab" id="tab-validate" onclick="switchOut('validate')">✓ <span class="t-validate-label">Validering</span></button>
       <button class="out-tab" id="tab-rest" onclick="switchOut('rest')">⚡ REST / Postman</button>
     </div>
 
@@ -596,6 +893,114 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
     <div class="out-panel" id="out-xml">
       <div class="xml-viewer" id="xmlViewer">
         <span style="color:var(--muted);">// XML genereras efter konvertering</span>
+      </div>
+    </div>
+
+    <!-- PREVIEW PANEL -->
+    <div class="out-panel" id="out-preview">
+      <div style="flex:1;background:#0d1117;display:flex;align-items:center;justify-content:center;position:relative;overflow:auto;padding:24px;">
+
+        <!-- Empty state -->
+        <div id="previewEmpty" style="text-align:center;color:var(--muted);">
+          <div style="font-size:48px;opacity:0.2;margin-bottom:12px;">📄</div>
+          <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px;">Ingen förhandsgranskning ännu</div>
+          <div style="font-size:12px;">Ladda upp en PDF eller klicka<br>"Generera PDF" i formuläret</div>
+        </div>
+
+        <!-- PDF container — hidden until content -->
+        <div id="previewContainer" style="display:none;flex-direction:column;align-items:center;gap:16px;width:100%;">
+
+          <!-- Live badge -->
+          <div style="display:flex;align-items:center;justify-content:space-between;width:100%;max-width:520px;">
+            <div id="previewLabel" style="font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;"></div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div id="livePill" style="display:none;align-items:center;gap:5px;background:rgba(35,134,54,0.15);border:1px solid rgba(35,134,54,0.4);border-radius:20px;padding:3px 10px;font-size:10px;color:#7ee787;font-weight:600;">
+                <div style="width:6px;height:6px;border-radius:50%;background:#7ee787;animation:previewPulse 1.5s ease-in-out infinite;"></div>
+                Live
+              </div>
+              <button onclick="downloadPreviewPDF()" style="background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:4px 10px;font-size:10px;color:var(--muted);cursor:pointer;font-family:inherit;transition:all 0.15s;"
+                onmouseover="this.style.borderColor='var(--accent)';this.style.color='#7ee787'"
+                onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">↓ PDF</button>
+              <button onclick="toggleFullPreview()" style="background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:4px 10px;font-size:10px;color:var(--muted);cursor:pointer;font-family:inherit;transition:all 0.15s;"
+                onmouseover="this.style.borderColor='var(--blue)';this.style.color='#79c0ff'"
+                onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">⛶ Fullskärm</button>
+            </div>
+          </div>
+
+          <!-- The paper -->
+          <div id="previewPaper" style="
+            width:100%;
+            max-width:520px;
+            background:#ffffff;
+            border-radius:4px;
+            box-shadow:0 0 0 1px rgba(255,255,255,0.06),0 8px 40px rgba(0,0,0,0.7),0 2px 8px rgba(0,0,0,0.5);
+            overflow:hidden;
+            min-height:200px;
+          ">
+            <iframe id="previewIframe"
+              style="width:100%;border:none;display:block;min-height:600px;"
+              title="PDF förhandsgranskning">
+            </iframe>
+          </div>
+
+          <div style="font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace;" id="previewHint">
+            Uppdateras automatiskt när du ändrar fält
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VALIDATION PANEL -->
+    <div class="out-panel" id="out-validate">
+      <div style="padding:20px 24px;overflow:auto;flex:1;display:flex;flex-direction:column;gap:14px;">
+
+        <!-- Header -->
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div style="font-size:14px;font-weight:700;color:var(--text);" id="val-title">PEPPOL BIS 3.0 Validering</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px;" id="val-source">Källa: itb.ec.europa.eu (EU-kommissionen) · 250+ Schematron-regler</div>
+          </div>
+          <button onclick="runExternalValidation()"
+            style="padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px;">
+            <span id="valRunSpinner" style="display:none;" class="spinner" style="width:12px;height:12px;"></span>
+            <span id="val-run-label">▶ Kör validering</span>
+          </button>
+        </div>
+
+        <!-- Score cards -->
+        <div id="valScoreCards" style="display:none;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;">
+          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;">
+            <div style="font-size:24px;font-weight:700;color:#7ee787;font-family:'JetBrains Mono',monospace;" id="val-ok-count">—</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:3px;text-transform:uppercase;letter-spacing:0.06em;" id="val-ok-label">Godkänd</div>
+          </div>
+          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;">
+            <div style="font-size:24px;font-weight:700;color:#e3b341;font-family:'JetBrains Mono',monospace;" id="val-warn-count">—</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:3px;text-transform:uppercase;letter-spacing:0.06em;" id="val-warn-label">Varning</div>
+          </div>
+          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;">
+            <div style="font-size:24px;font-weight:700;color:#ff7b72;font-family:'JetBrains Mono',monospace;" id="val-err-count">—</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:3px;text-transform:uppercase;letter-spacing:0.06em;" id="val-err-label">Fel</div>
+          </div>
+          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;">
+            <div style="font-size:24px;font-weight:700;color:var(--text);font-family:'JetBrains Mono',monospace;" id="val-score-pct">—</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:3px;text-transform:uppercase;letter-spacing:0.06em;" id="val-score-label">Score</div>
+          </div>
+        </div>
+
+        <!-- Progress bar -->
+        <div id="valProgressBar" style="display:none;">
+          <div style="height:3px;background:var(--border);border-radius:2px;overflow:hidden;">
+            <div id="valProgressFill" style="height:100%;border-radius:2px;width:0%;transition:width 0.4s;background:var(--accent);"></div>
+          </div>
+        </div>
+
+        <!-- Results list -->
+        <div id="valResults" style="display:flex;flex-direction:column;gap:4px;">
+          <div style="padding:40px;text-align:center;color:var(--muted);font-size:13px;" id="valEmpty">
+            Generera XML och klicka "Kör validering" för att köra mot EU-kommissionens officiella PEPPOL-validator.
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -834,6 +1239,12 @@ function processFile(file) {
     document.getElementById('testFilesSection').style.display = 'none';
     addThinking('sys', '📂', `Fil laddad: <strong>${file.name}</strong> (${(file.size/1024).toFixed(1)} KB)`);
     addThinking('sys', '💡', 'Klicka på "Konvertera till PEPPOL XML" för att starta AI-analysen.');
+
+    // Show PDF in preview panel immediately
+    if (uploadedMime === 'application/pdf') {
+      showUploadedPDFPreview(uploadedBase64, file.name);
+      addThinking('sys', '👁', `<span style="cursor:pointer;color:var(--blue);text-decoration:underline;" onclick="switchOutDirect('preview')">Visa PDF-förhandsgranskning →</span>`);
+    }
   };
   reader.readAsDataURL(file);
 }
@@ -946,9 +1357,23 @@ async function startConversion() {
     markTabReady('fields');
     markTabReady('xml');
     markTabReady('rest');
+    markTabReady('validate');
+
+    // Save to history
+    saveToHistory({
+      invoiceId: extractedJson.invoiceId || '?',
+      seller:    extractedJson.seller?.name || '',
+      buyer:     extractedJson.buyer?.name || '',
+      date:      new Date().toLocaleString('sv-SE', {hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'}),
+      xmlSize:   (generatedXML.length/1024).toFixed(1) + ' KB',
+      xml:       generatedXML,
+    });
 
     // Add quick link to REST in AI log
     addThinking('sys', '⚡', `<span style="cursor:pointer;color:var(--blue);text-decoration:underline;" onclick="switchOutDirect('rest')">Gå till REST / Postman →</span> för att exportera i JSON, XML, SOAP eller Bruno-format.`);
+
+    // Add edit in form button
+    addThinking('sys', '✏️', `<span style="cursor:pointer;color:#b392f0;text-decoration:underline;" onclick="populateFormFromExtracted()">Redigera i formulär →</span> Justera belopp, rader eller uppgifter innan du genererar XML.`);
 
   } catch (err) {
     setStage('vision', 'error');
@@ -1027,7 +1452,8 @@ JSON-strukturen ska vara exakt:
   "totals": {
     "net": 0,
     "vatAmount": 0,
-    "gross": 0
+    "gross": 0,
+    "rounding": 0
   },
   "lines": [
     {
@@ -1060,6 +1486,9 @@ Regler:
 - Om information saknas, använd tom sträng "" eller 0
 - confidence ska vara 0.0-1.0 per fält
 - warnings är en array med strängar som beskriver vad som är osäkert eller saknas
+- note-fältet ska BARA innehålla faktiska anteckningar från fakturan — INTE avrundningsinfo
+- Om fakturan har avrundning (öresavrundning), sätt totals.rounding till avrundningsbeloppet (negativt tal, t.ex. -0.23) och totals.gross till det avrundade beloppet (heltal)
+- totals.gross ska alltid vara det faktiska ATT BETALA-beloppet efter eventuell avrundning
 ${strict ? '- Strict mode: inkludera alla osäkerheter i warnings-arrayen' : ''}`;
 
   // Determine content type for API
@@ -1155,7 +1584,8 @@ function buildPeppolXML(d) {
   // Use AI-extracted totals if available and close, else recalculated
   const net = Math.abs(parseFloat(d.totals?.net || netCalc) - netCalc) < 1 ? parseFloat(d.totals?.net || netCalc) : netCalc;
   const vat = Math.abs(parseFloat(d.totals?.vatAmount || vatCalc) - vatCalc) < 1 ? parseFloat(d.totals?.vatAmount || vatCalc) : vatCalc;
-  const gross = net + vat;
+  const rounding = parseFloat(d.totals?.rounding || 0);
+  const gross = rounding ? net + vat + rounding : net + vat;
 
   const exemptLine = d.vat?.exemptReason ? `\n        <cbc:TaxExemptionReason>${esc(d.vat.exemptReason)}</cbc:TaxExemptionReason>` : '';
 
@@ -1271,7 +1701,8 @@ ${d.orderRef ? `  <cac:OrderReference><cbc:ID>${esc(d.orderRef)}</cbc:ID></cac:O
   <cac:LegalMonetaryTotal>
     <cbc:LineExtensionAmount currencyID="${esc(currency)}">${n2(net)}</cbc:LineExtensionAmount>
     <cbc:TaxExclusiveAmount currencyID="${esc(currency)}">${n2(net)}</cbc:TaxExclusiveAmount>
-    <cbc:TaxInclusiveAmount currencyID="${esc(currency)}">${n2(gross)}</cbc:TaxInclusiveAmount>
+    <cbc:TaxInclusiveAmount currencyID="${esc(currency)}">${n2(net + vat)}</cbc:TaxInclusiveAmount>${d.totals?.rounding ? `
+    <cbc:PayableRoundingAmount currencyID="${esc(currency)}">${n2(parseFloat(d.totals.rounding))}</cbc:PayableRoundingAmount>` : ''}
     <cbc:PayableAmount currencyID="${esc(currency)}">${n2(gross)}</cbc:PayableAmount>
   </cac:LegalMonetaryTotal>
 ${linesXml}
@@ -1393,8 +1824,11 @@ function switchOut(name) {
   document.getElementById('out-' + name).classList.add('active');
   const tabEl = document.getElementById('tab-' + name);
   if (tabEl) tabEl.classList.add('active');
-  // Clear dot on tab when visited
-  if (tabEl) tabEl.style.position = '';
+  // If switching to preview in create mode — render immediately
+  if (name === 'preview') {
+    const createVisible = document.getElementById('createMode').style.display !== 'none';
+    if (createVisible) renderLivePreview();
+  }
 }
 
 function markTabReady(name) {
@@ -1457,6 +1891,9 @@ function resetApp() {
 
   // Remove tab dots
   document.querySelectorAll('.tab-dot').forEach(d => d.remove());
+
+  // Clear preview
+  clearPreview();
 
   switchOutDirect('ai');
 }
@@ -1718,9 +2155,12 @@ function esc(s) {
   return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-// Init profiles on load
+// Init on load
 document.addEventListener('DOMContentLoaded', () => {
   renderProfilePills();
+  applyTheme(currentTheme);
+  applyLang(currentLang);
+  updateHistoryCount();
 });
 
 // ============================================================
@@ -2345,6 +2785,1017 @@ async function generateRestExports() {
   }
 }
 // ============================================================
+// THEME TOGGLE
+// ============================================================
+let currentTheme = localStorage.getItem('peppol_theme') || 'dark';
+
+function applyTheme(theme) {
+  currentTheme = theme;
+  document.body.classList.toggle('light', theme === 'light');
+  document.getElementById('themeBtn').textContent = theme === 'light' ? '🌙' : '☀️';
+  localStorage.setItem('peppol_theme', theme);
+}
+
+function toggleTheme() {
+  applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
+}
+
+// ============================================================
+// LANGUAGE TOGGLE
+// ============================================================
+let currentLang = localStorage.getItem('peppol_lang') || 'sv';
+
+const STRINGS = {
+  sv: {
+    appTitle: 'PDF → PEPPOL Converter',
+    modeUpload: '📄 Ladda upp PDF',
+    modeCreate: '✏️ Skapa faktura',
+    testHeader: 'Testfakturor — klicka för att ladda',
+    settingsHeader: 'Inställningar',
+    profilesHeader: 'Profiler',
+    convertBtn: 'Konvertera till PEPPOL XML',
+    tabAI: 'AI-analys',
+    tabFields: 'Extraherade fält',
+    tabPreview: 'Förhandsgranskning',
+    tabValidate: 'Validering',
+    historyTitle: 'Historik (senaste 10)',
+    valTitle: 'PEPPOL BIS 3.0 Validering',
+    valSource: 'Källa: itb.ec.europa.eu (EU-kommissionen) · 250+ Schematron-regler',
+    valRun: '▶ Kör validering',
+    valOk: 'Godkänd', valWarn: 'Varning', valErr: 'Fel', valScore: 'Score',
+    valEmpty: 'Generera XML och klicka "Kör validering" för att köra mot EU-kommissionens officiella PEPPOL-validator.',
+    genPdf: '📄 Generera PDF',
+    genBoth: '⚡ PDF + PEPPOL XML',
+    historyEmpty: 'Inga konverteringar ännu',
+  },
+  en: {
+    appTitle: 'PDF → PEPPOL Converter',
+    modeUpload: '📄 Upload PDF',
+    modeCreate: '✏️ Create invoice',
+    testHeader: 'Test invoices — click to load',
+    settingsHeader: 'Settings',
+    profilesHeader: 'Profiles',
+    convertBtn: 'Convert to PEPPOL XML',
+    tabAI: 'AI analysis',
+    tabFields: 'Extracted fields',
+    tabPreview: 'Preview',
+    tabValidate: 'Validation',
+    historyTitle: 'History (last 10)',
+    valTitle: 'PEPPOL BIS 3.0 Validation',
+    valSource: 'Source: itb.ec.europa.eu (EU Commission) · 250+ Schematron rules',
+    valRun: '▶ Run validation',
+    valOk: 'Passed', valWarn: 'Warning', valErr: 'Error', valScore: 'Score',
+    valEmpty: 'Generate XML and click "Run validation" to validate against the EU Commission\'s official PEPPOL validator.',
+    genPdf: '📄 Generate PDF',
+    genBoth: '⚡ PDF + PEPPOL XML',
+    historyEmpty: 'No conversions yet',
+  }
+};
+
+function applyLang(lang) {
+  currentLang = lang;
+  localStorage.setItem('peppol_lang', lang);
+  document.getElementById('langBtn').textContent = lang === 'sv' ? 'SV' : 'EN';
+  const s = STRINGS[lang];
+  const set = (id, val) => { const el = document.getElementById(id); if (el && val) el.textContent = val; };
+  set('appTitle', s.appTitle);
+  set('modeUpload', s.modeUpload);
+  set('modeCreate', s.modeCreate);
+  set('val-title', s.valTitle);
+  set('val-source', s.valSource);
+  set('val-run-label', s.valRun);
+  set('val-ok-label', s.valOk);
+  set('val-warn-label', s.valWarn);
+  set('val-err-label', s.valErr);
+  set('val-score-label', s.valScore);
+  set('valEmpty', s.valEmpty);
+  set('historyTitle', s.historyTitle);
+  set('historyEmpty', s.historyEmpty);
+  // Tabs
+  const tabLabels = [
+    ['t-ai-label', s.tabAI],
+    ['t-fields-label', s.tabFields],
+    ['t-preview-label', s.tabPreview],
+    ['t-validate-label', s.tabValidate],
+  ];
+  tabLabels.forEach(([id, val]) => set(id, val));
+  // Convert button
+  const cvBtn = document.getElementById('convertBtn');
+  if (cvBtn) {
+    const svg = cvBtn.querySelector('svg');
+    cvBtn.textContent = s.convertBtn;
+    if (svg) cvBtn.insertBefore(svg, cvBtn.firstChild);
+  }
+  // Form buttons
+  const genBtns = document.querySelectorAll('.gen-pdf-btn');
+  genBtns.forEach(b => b.textContent = s.genPdf);
+  const genBothBtns = document.querySelectorAll('.gen-both-btn');
+  genBothBtns.forEach(b => b.textContent = s.genBoth);
+}
+
+function toggleLang() {
+  applyLang(currentLang === 'sv' ? 'en' : 'sv');
+}
+
+// ============================================================
+// HISTORY
+// ============================================================
+const HISTORY_KEY = 'peppol_history_v1';
+
+function loadHistory() {
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; }
+  catch { return []; }
+}
+
+function saveToHistory(entry) {
+  let hist = loadHistory();
+  hist.unshift(entry);
+  if (hist.length > 10) hist = hist.slice(0, 10);
+  try { localStorage.setItem(HISTORY_KEY, JSON.stringify(hist)); } catch {}
+  renderHistory();
+  updateHistoryCount();
+}
+
+function updateHistoryCount() {
+  const count = loadHistory().length;
+  document.getElementById('historyCount').textContent = count;
+}
+
+function renderHistory() {
+  const hist = loadHistory();
+  const list = document.getElementById('historyList');
+  const empty = document.getElementById('historyEmpty');
+  if (hist.length === 0) {
+    if (empty) empty.style.display = 'block';
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+  list.innerHTML = '';
+  hist.forEach((h, i) => {
+    const d = document.createElement('div');
+    d.style.cssText = 'background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:10px 12px;cursor:pointer;transition:border-color 0.15s;';
+    d.onmouseover = () => d.style.borderColor = 'var(--accent)';
+    d.onmouseout  = () => d.style.borderColor = 'var(--border)';
+    d.innerHTML =
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">' +
+        '<span style="font-size:12px;font-weight:600;color:var(--text);font-family:monospace;">' + (h.invoiceId||'?') + '</span>' +
+        '<span style="font-size:10px;color:var(--muted);">' + h.date + '</span>' +
+      '</div>' +
+      '<div style="font-size:11px;color:var(--muted);">' + (h.seller||'') + ' → ' + (h.buyer||'') + '</div>' +
+      '<div style="display:flex;gap:6px;margin-top:6px;">' +
+        '<button onclick="restoreFromHistory(' + i + ')" style="font-size:10px;padding:3px 8px;background:var(--accent);color:#fff;border:none;border-radius:4px;cursor:pointer;font-family:inherit;">Återställ XML</button>' +
+        '<span style="font-size:10px;color:var(--muted);align-self:center;">' + (h.xmlSize||'') + '</span>' +
+      '</div>';
+    list.appendChild(d);
+  });
+}
+
+function restoreFromHistory(index) {
+  const hist = loadHistory();
+  const h = hist[index];
+  if (!h || !h.xml) return;
+  generatedXML = h.xml;
+  renderXML(h.xml);
+  markTabReady('xml');
+  markTabReady('validate');
+  document.getElementById('downloadBtn').disabled = false;
+  document.getElementById('copyBtn').disabled = false;
+  document.getElementById('statusText').textContent = `✓ Återställd · ${h.invoiceId}`;
+  switchOutDirect('xml');
+  toggleHistory();
+  addThinking('ok', '🕐', `XML återställd från historik: <strong>${h.invoiceId}</strong>`);
+}
+
+function toggleHistory() {
+  const drawer = document.getElementById('historyDrawer');
+  const isOpen = drawer.style.display !== 'none';
+  drawer.style.display = isOpen ? 'none' : 'flex';
+  drawer.style.flexDirection = 'column';
+  if (!isOpen) renderHistory();
+}
+
+function clearHistory() {
+  if (!confirm('Rensa all historik?')) return;
+  localStorage.removeItem(HISTORY_KEY);
+  renderHistory();
+  updateHistoryCount();
+}
+
+// ============================================================
+// EXTERNAL VALIDATION — EU Commission PEPPOL Validator
+// ============================================================
+async function runExternalValidation() {
+  if (!generatedXML) {
+    alert(currentLang === 'sv' ? 'Generera XML först!' : 'Generate XML first!');
+    return;
+  }
+
+  const spinner = document.getElementById('valRunSpinner');
+  const label   = document.getElementById('val-run-label');
+  spinner.style.display = 'inline-block';
+  label.textContent = currentLang === 'sv' ? 'Validerar...' : 'Validating...';
+
+  document.getElementById('valEmpty').style.display = 'none';
+  document.getElementById('valResults').innerHTML = '';
+  document.getElementById('valScoreCards').style.display = 'none';
+  document.getElementById('valProgressBar').style.display = 'none';
+
+  try {
+    let report;
+    try {
+      const res = await fetch('/api/validate', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/xml' },
+        body:    generatedXML,
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        // Show proxy error clearly in UI
+        console.error('[validate] Proxy-fel:', data);
+        const errDiv = document.createElement('div');
+        errDiv.style.cssText = 'padding:10px;background:rgba(218,54,51,0.1);border:1px solid var(--danger);border-radius:6px;font-size:11px;color:#ff7b72;font-family:monospace;';
+        errDiv.textContent = 'Proxy-fel HTTP ' + res.status + ': ' + JSON.stringify(data);
+        document.getElementById('valResults').appendChild(errDiv);
+        report = runBuiltInValidation();
+        report._fallback = true;
+      } else {
+        report = data;
+      }
+    } catch (apiErr) {
+      console.error('[validate] Fetch-fel:', apiErr.message);
+      report = runBuiltInValidation();
+      report._fallback = true;
+    }
+
+    renderValidationReport(report);
+
+  } catch (err) {
+    document.getElementById('valResults').innerHTML =
+      '<div style="padding:20px;color:var(--danger);font-size:13px;">Fel: ' + err.message + '</div>';
+  } finally {
+    spinner.style.display = 'none';
+    label.textContent = STRINGS[currentLang].valRun;
+  }
+}
+
+function runBuiltInValidation() {
+  // Fallback: run local rules and return in same format
+  const rules = [
+    { id:'PEPPOL-EN16931-R001', level:'error',   desc:'CustomizationID måste vara PEPPOL BIS 3.0', descEn:'CustomizationID must be PEPPOL BIS 3.0',
+      pass: generatedXML.includes('urn:cen.eu:en16931:2017#compliant#urn:fdc:peppol.eu:2017:poacc:billing:3.0') },
+    { id:'PEPPOL-EN16931-R002', level:'error',   desc:'ProfileID måste vara korrekt', descEn:'ProfileID must be correct',
+      pass: generatedXML.includes('urn:fdc:peppol.eu:2017:poacc:billing:01:1.0') },
+    { id:'BT-1',  level:'error',   desc:'Fakturanummer (BT-1) måste finnas', descEn:'Invoice number (BT-1) required',
+      pass: /<cbc:ID>[^<]+<\/cbc:ID>/.test(generatedXML) },
+    { id:'BT-2',  level:'error',   desc:'Fakturadatum (BT-2) måste finnas', descEn:'Invoice date (BT-2) required',
+      pass: generatedXML.includes('<cbc:IssueDate>') },
+    { id:'BT-5',  level:'error',   desc:'Valutakod (BT-5) måste finnas', descEn:'Currency (BT-5) required',
+      pass: generatedXML.includes('<cbc:DocumentCurrencyCode>') },
+    { id:'BT-10', level:'error',   desc:'Köparreferens (BT-10) obligatorisk i Sverige', descEn:'Buyer reference (BT-10) required in Sweden',
+      pass: generatedXML.includes('<cbc:BuyerReference>') },
+    { id:'BT-27', level:'error',   desc:'Säljarens namn (BT-27) måste finnas', descEn:'Seller name (BT-27) required',
+      pass: generatedXML.includes('AccountingSupplierParty') },
+    { id:'BT-44', level:'error',   desc:'Köparens namn (BT-44) måste finnas', descEn:'Buyer name (BT-44) required',
+      pass: generatedXML.includes('AccountingCustomerParty') },
+    { id:'BT-31', level:'warning', desc:'Säljarens VAT-nummer rekommenderas', descEn:'Seller VAT number recommended',
+      pass: generatedXML.includes('PartyTaxScheme') },
+    { id:'BT-81', level:'error',   desc:'Betalningssätt (BT-81) måste anges', descEn:'Payment means (BT-81) required',
+      pass: generatedXML.includes('<cbc:PaymentMeansCode>') },
+    { id:'BT-106',level:'error',   desc:'Nettosumma (BT-106) måste finnas', descEn:'Line extension amount (BT-106) required',
+      pass: generatedXML.includes('LineExtensionAmount') },
+    { id:'BT-110',level:'error',   desc:'Momsbelopp (BT-110) måste finnas', descEn:'Tax amount (BT-110) required',
+      pass: generatedXML.includes('TaxTotal') },
+    { id:'BT-115',level:'error',   desc:'Att betala (BT-115) måste finnas', descEn:'Payable amount (BT-115) required',
+      pass: generatedXML.includes('PayableAmount') },
+    { id:'LINE-1',level:'error',   desc:'Minst en fakturarad krävs', descEn:'At least one invoice line required',
+      pass: generatedXML.includes('InvoiceLine') },
+    { id:'BT-84', level:'warning', desc:'Bankgiro/IBAN (BT-84) rekommenderas', descEn:'Bank account (BT-84) recommended',
+      pass: generatedXML.includes('PayeeFinancialAccount') },
+  ];
+  const passed   = rules.filter(r => r.pass);
+  const warnings = rules.filter(r => !r.pass && r.level === 'warning');
+  const errors   = rules.filter(r => !r.pass && r.level === 'error');
+  return { _fallback: true, _rules: rules, passed: passed.length, warnings: warnings.length, errors: errors.length, total: rules.length };
+}
+
+function renderValidationReport(report) {
+  const isSv = currentLang === 'sv';
+  const s = STRINGS[currentLang];
+
+  if (report._fallback) {
+    // Built-in fallback
+    const rules  = report._rules || [];
+    const ok     = report.passed || 0;
+    const warns  = report.warnings || 0;
+    const errs   = report.errors || 0;
+    const total  = report.total || rules.length;
+    const pct    = total > 0 ? Math.round(ok/total*100) : 0;
+
+    document.getElementById('valScoreCards').style.display = 'grid';
+    document.getElementById('valProgressBar').style.display = 'block';
+    document.getElementById('val-ok-count').textContent   = ok;
+    document.getElementById('val-warn-count').textContent  = warns;
+    document.getElementById('val-err-count').textContent   = errs;
+    document.getElementById('val-score-pct').textContent   = pct + '%';
+    const fill = document.getElementById('valProgressFill');
+    fill.style.width = pct + '%';
+    fill.style.background = errs > 0 ? 'var(--danger)' : warns > 0 ? 'var(--warn)' : 'var(--accent)';
+
+    const container = document.getElementById('valResults');
+    const note = document.createElement('div');
+    note.style.cssText = 'padding:8px 12px;background:rgba(210,153,34,0.1);border:1px solid rgba(210,153,34,0.3);border-radius:6px;font-size:11px;color:#e3b341;margin-bottom:8px;';
+    note.textContent = isSv
+      ? '⚠️ EU-validatorn ej nåbar — kör inbyggd validering (15 regler). Kontrollera att servern är igång och har nätverksåtkomst.'
+      : '⚠️ EU validator unreachable — running built-in validation (15 rules). Check that the server is running and has network access.';
+    container.appendChild(note);
+
+    rules.forEach(r => {
+      const d = document.createElement('div');
+      const color = r.pass ? '#7ee787' : r.level === 'warning' ? '#e3b341' : '#ff7b72';
+      const icon  = r.pass ? '✓' : r.level === 'warning' ? '⚠' : '✗';
+      d.style.cssText = 'display:flex;gap:10px;padding:6px 10px;border-radius:5px;border:1px solid var(--border);background:var(--surface2);align-items:flex-start;font-size:11px;';
+      d.innerHTML =
+        '<span style="color:' + color + ';font-weight:700;min-width:14px;">' + icon + '</span>' +
+        '<span style="color:var(--blue);font-family:monospace;min-width:140px;">' + r.id + '</span>' +
+        '<span style="color:' + (r.pass ? 'var(--muted)' : 'var(--text)') + ';">' + (isSv ? r.desc : (r.descEn||r.desc)) + '</span>';
+      container.appendChild(d);
+    });
+
+  } else {
+    // Real API response — parse OpenAPI format
+    const reports = report.reports || report.result || [];
+    let ok=0, warns=0, errs=0;
+    const items = [];
+
+    (Array.isArray(reports) ? reports : [report]).forEach(rep => {
+      const findings = rep.findings || rep.errors || rep.assertions || [];
+      findings.forEach(f => {
+        const level = (f.level||f.type||'').toLowerCase();
+        if (level.includes('error')) errs++;
+        else if (level.includes('warn')) warns++;
+        else ok++;
+        items.push({ id: f.assertionID||f.id||'—', level, desc: f.description||f.message||'', location: f.location||'' });
+      });
+    });
+
+    const total = ok+warns+errs;
+    const pct   = total > 0 ? Math.round((total-errs)/total*100) : 100;
+
+    document.getElementById('valScoreCards').style.display = 'grid';
+    document.getElementById('valProgressBar').style.display = 'block';
+    document.getElementById('val-ok-count').textContent  = total - warns - errs;
+    document.getElementById('val-warn-count').textContent = warns;
+    document.getElementById('val-err-count').textContent  = errs;
+    document.getElementById('val-score-pct').textContent  = pct+'%';
+    const fill = document.getElementById('valProgressFill');
+    fill.style.width = pct+'%';
+    fill.style.background = errs>0?'var(--danger)':warns>0?'var(--warn)':'var(--accent)';
+
+    const container = document.getElementById('valResults');
+    if (items.length === 0) {
+      const ok = document.createElement('div');
+      ok.style.cssText = 'padding:16px;background:rgba(35,134,54,0.1);border:1px solid rgba(35,134,54,0.3);border-radius:6px;color:#7ee787;font-weight:600;text-align:center;';
+      ok.textContent = isSv ? '✅ Fakturan är giltig — alla PEPPOL BIS 3.0 regler godkända!' : '✅ Invoice is valid — all PEPPOL BIS 3.0 rules passed!';
+      container.appendChild(ok);
+    } else {
+      items.forEach(item => {
+        const d   = document.createElement('div');
+        const lvl = item.level;
+        const color = lvl.includes('error') ? '#ff7b72' : lvl.includes('warn') ? '#e3b341' : '#7ee787';
+        const icon  = lvl.includes('error') ? '✗' : lvl.includes('warn') ? '⚠' : '✓';
+        d.style.cssText = 'padding:8px 10px;border-radius:5px;border:1px solid var(--border);background:var(--surface2);font-size:11px;margin-bottom:3px;';
+        d.innerHTML =
+          '<div style="display:flex;gap:8px;align-items:center;margin-bottom:2px;">' +
+            '<span style="color:'+color+';font-weight:700;">' + icon + '</span>' +
+            '<span style="color:var(--blue);font-family:monospace;">' + item.id + '</span>' +
+          '</div>' +
+          '<div style="color:var(--text);padding-left:18px;">' + item.desc + '</div>' +
+          (item.location ? '<div style="color:var(--muted);font-size:10px;font-family:monospace;padding-left:18px;margin-top:2px;">' + item.location + '</div>' : '');
+        container.appendChild(d);
+      });
+    }
+  }
+
+  markTabReady('validate');
+}
+
+// ============================================================
+// POPULATE CREATE FORM FROM AI-EXTRACTED DATA
+// ============================================================
+function populateFormFromExtracted() {
+  const d = extractedData;
+  if (!d) { alert('Ingen extraherad data — konvertera en PDF först.'); return; }
+
+  const set = (id, val) => {
+    const el = document.getElementById(id);
+    if (el && val !== undefined && val !== null) el.value = val;
+  };
+
+  // Header
+  set('cf-invoiceId',    d.invoiceId);
+  set('cf-invoiceType',  d.invoiceType || '380');
+  set('cf-issueDate',    d.issueDate);
+  set('cf-dueDate',      d.dueDate);
+  set('cf-currency',     d.currency);
+  set('cf-paymentRef',   d.paymentRef);
+  set('cf-paymentTerms', d.paymentTerms);
+  set('cf-note',         d.note);
+
+  // Seller
+  set('cf-sellerName',    d.seller?.name);
+  set('cf-sellerOrgNo',   d.seller?.orgNo);
+  set('cf-sellerVat',     d.seller?.vat);
+  set('cf-sellerStreet',  d.seller?.street);
+  set('cf-sellerZip',     d.seller?.zip);
+  set('cf-sellerCity',    d.seller?.city);
+  set('cf-sellerCountry', d.seller?.country);
+  set('cf-sellerBank',    d.seller?.bank);
+  set('cf-sellerEmail',   d.seller?.email);
+
+  // Buyer
+  set('cf-buyerName',    d.buyer?.name);
+  set('cf-buyerOrgNo',   d.buyer?.orgNo);
+  set('cf-buyerVat',     d.buyer?.vat);
+  set('cf-buyerStreet',  d.buyer?.street);
+  set('cf-buyerZip',     d.buyer?.zip);
+  set('cf-buyerCity',    d.buyer?.city);
+  set('cf-buyerCountry', d.buyer?.country);
+  set('cf-buyerRef',     d.buyer?.ref);
+
+  // VAT
+  set('cf-vatCategory', d.vat?.category);
+  set('cf-vatPercent',  d.vat?.percent);
+
+  // Lines — clear existing and repopulate
+  const container = document.getElementById('cf-linesContainer');
+  container.innerHTML = '';
+  cfLineCount = 0;
+  if (d.lines?.length > 0) {
+    d.lines.forEach(l => addCFLine({
+      desc:  l.desc,
+      artNo: l.artNo,
+      qty:   l.qty,
+      unit:  l.unit,
+      price: l.price,
+    }));
+  } else {
+    addCFLine();
+  }
+
+  recalcCF();
+
+  // Switch to create mode
+  setMode('create');
+
+  addThinking('ok', '✓', `Formulär ifyllt med data från <strong>${currentFileName}</strong> — justera och klicka "PDF + PEPPOL XML" när du är klar.`);
+}
+
+// ============================================================
+// PDF PREVIEW PANEL
+// ============================================================
+let previewBlobUrl = null;
+let previewDebounce = null;
+let isLivePreview = false;
+
+function showUploadedPDFPreview(base64, filename) {
+  isLivePreview = false;
+  const binary = atob(base64);
+  const bytes  = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  const blob = new Blob([bytes], { type:'application/pdf' });
+  if (previewBlobUrl) URL.revokeObjectURL(previewBlobUrl);
+  previewBlobUrl = URL.createObjectURL(blob);
+  renderPreview(previewBlobUrl, filename, false);
+  markTabReady('preview');
+}
+
+function renderPreview(url, label, live) {
+  document.getElementById('previewEmpty').style.display     = 'none';
+  document.getElementById('previewContainer').style.display = 'flex';
+  document.getElementById('previewLabel').textContent        = label || '';
+  const livePill = document.getElementById('livePill');
+  livePill.style.display = live ? 'flex' : 'none';
+  document.getElementById('previewHint').textContent = live
+    ? 'Uppdateras automatiskt när du ändrar fält'
+    : 'Uppladdad PDF · AI-tolkning pågick';
+
+  const iframe = document.getElementById('previewIframe');
+  iframe.src = url + '#toolbar=0&navpanes=0&scrollbar=0&view=FitH';
+}
+
+function clearPreview() {
+  document.getElementById('previewEmpty').style.display     = 'flex';
+  document.getElementById('previewContainer').style.display = 'none';
+  if (previewBlobUrl) { URL.revokeObjectURL(previewBlobUrl); previewBlobUrl = null; }
+}
+
+function downloadPreviewPDF() {
+  if (!previewBlobUrl) return;
+  const a = document.createElement('a');
+  a.href = previewBlobUrl;
+  a.download = (currentFileName || 'faktura').replace(/\.pdf$/i,'') + '_preview.pdf';
+  a.click();
+}
+
+function toggleFullPreview() {
+  const paper = document.getElementById('previewPaper');
+  const isExpanded = paper.getAttribute('data-full') === '1';
+  if (isExpanded) {
+    paper.style.maxWidth = '520px';
+    paper.removeAttribute('data-full');
+  } else {
+    paper.style.maxWidth = '100%';
+    paper.setAttribute('data-full','1');
+  }
+}
+
+// Live preview — debounced, triggers from form changes
+function scheduleLivePreview() {
+  clearTimeout(previewDebounce);
+  previewDebounce = setTimeout(async () => {
+    const tabPreview = document.getElementById('out-preview');
+    if (!tabPreview.classList.contains('active')) return; // only render if visible
+    await renderLivePreview();
+  }, 800);
+}
+
+async function renderLivePreview() {
+  if (!window.jspdf) {
+    try {
+      await new Promise((res,rej) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+        s.onload = res; s.onerror = rej;
+        document.head.appendChild(s);
+      });
+    } catch(e) { return; }
+  }
+
+  const d = getCFData();
+  if (!d.seller.name && !d.buyer.name && d.lines.length === 0) return;
+
+  // Temporarily suppress the download — generate blob only
+  const { jsPDF } = window.jspdf;
+  const doc  = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+  const W = 210, M = 20, CW = W - 2*M;
+  const curr = d.currency || 'SEK';
+  const n2 = n => parseFloat(n||0).toLocaleString('sv-SE',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const ACCENT=[37,99,235], MUTED=[120,120,120], DARK=[20,20,40];
+  let y = 18;
+
+  doc.setFillColor(...ACCENT); doc.rect(0,0,W,12,'F');
+  doc.setTextColor(255,255,255); doc.setFontSize(9); doc.setFont('helvetica','normal');
+  doc.text('FAKTURA · PEPPOL BIS Billing 3.0', M, 8);
+  doc.text(d.invoiceId||'', W-M, 8, {align:'right'});
+  y=22;
+
+  doc.setTextColor(...DARK); doc.setFontSize(13); doc.setFont('helvetica','bold');
+  doc.text(d.seller.name||'', M, y); y+=5;
+  doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
+  if (d.seller.street) { doc.text(d.seller.street, M, y); y+=4; }
+  if (d.seller.zip||d.seller.city) { doc.text([d.seller.zip,d.seller.city].filter(Boolean).join(' '), M, y); y+=4; }
+  if (d.seller.orgNo) { doc.text('Org.nr: '+d.seller.orgNo, M, y); y+=4; }
+  if (d.seller.vat)   { doc.text('Moms: '+d.seller.vat, M, y); y+=4; }
+  if (d.seller.bank)  { doc.text('Bankgiro: '+d.seller.bank, M, y); y+=4; }
+
+  const rx=W-M; let ry=22;
+  const meta=[['Fakturanummer:',d.invoiceId],['Fakturadatum:',d.issueDate],['Förfallodatum:',d.dueDate],['Valuta:',curr]];
+  if (d.paymentRef) meta.push(['OCR:',d.paymentRef]);
+  meta.forEach(([k,v]) => {
+    if (!v) return;
+    doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
+    doc.text(k, rx-50, ry);
+    doc.setFont('helvetica','bold'); doc.text(v, rx, ry, {align:'right'});
+    ry+=4.5;
+  });
+
+  y=Math.max(y,ry)+6;
+  doc.setFillColor(240,244,255); doc.rect(M,y,CW,22,'F');
+  doc.setDrawColor(...ACCENT); doc.setLineWidth(0.3); doc.rect(M,y,CW,22);
+  doc.setTextColor(...DARK); doc.setFontSize(7); doc.setFont('helvetica','bold');
+  doc.text('FAKTURERAS TILL', M+3, y+4);
+  doc.setFontSize(9); doc.text(d.buyer.name||'', M+3, y+9);
+  doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
+  if (d.buyer.street) doc.text(d.buyer.street, M+3, y+14);
+  if (d.buyer.orgNo)  doc.text('Org.nr: '+d.buyer.orgNo, M+3, y+18);
+  if (d.buyer.ref)    doc.text('Ref: '+d.buyer.ref, rx, y+9, {align:'right'});
+  y+=28;
+
+  doc.setFillColor(...ACCENT); doc.rect(M,y,CW,6,'F');
+  doc.setTextColor(255,255,255); doc.setFontSize(7); doc.setFont('helvetica','bold');
+  doc.text('Beskrivning', M+2, y+4);
+  doc.text('Antal', M+85, y+4, {align:'right'});
+  doc.text('À-pris', M+135, y+4, {align:'right'});
+  doc.text('Belopp', W-M-2, y+4, {align:'right'});
+  y+=6;
+
+  d.lines.forEach((l,i) => {
+    doc.setFillColor(...(i%2===0?[255,255,255]:[248,250,255]));
+    doc.rect(M,y,CW,6,'F');
+    doc.setTextColor(...DARK); doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
+    doc.text((l.desc||'').substring(0,45), M+2, y+4);
+    doc.text(String(l.qty||''), M+85, y+4, {align:'right'});
+    doc.text(n2(l.price), M+135, y+4, {align:'right'});
+    doc.text(n2((l.qty||0)*(l.price||0)), W-M-2, y+4, {align:'right'});
+    y+=6;
+  });
+  y+=4;
+
+  [
+    ['Netto (exkl. moms):', n2(d.totals.net)+' '+curr],
+    ['Moms '+d.vat.percent+'%:', n2(d.totals.vatAmount)+' '+curr],
+  ].forEach(([k,v]) => {
+    doc.setTextColor(...MUTED); doc.setFont('helvetica','normal'); doc.setFontSize(8);
+    doc.text(k, W-M-55, y); doc.text(v, W-M, y, {align:'right'}); y+=5;
+  });
+  if (d.rounding) {
+    doc.text('Avrundning (BT-114):', W-M-55, y);
+    doc.text(n2(d.rounding)+' '+curr, W-M, y, {align:'right'}); y+=5;
+  }
+  doc.setFillColor(...ACCENT); doc.rect(W-M-85,y-1,85,9,'F');
+  doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(9);
+  doc.text('ATT BETALA:', W-M-83, y+5);
+  doc.text(n2(d.totals.gross)+' '+curr, W-M-2, y+5, {align:'right'});
+
+  const blob = doc.output('blob');
+  if (previewBlobUrl) URL.revokeObjectURL(previewBlobUrl);
+  previewBlobUrl = URL.createObjectURL(blob);
+  isLivePreview = true;
+  renderPreview(previewBlobUrl, d.invoiceId ? d.invoiceId+'.pdf (live)' : 'live preview', true);
+  markTabReady('preview');
+}
+
+// ============================================================
+// MODE SWITCHER
+// ============================================================
+function setMode(mode) {
+  const isCreate = mode === 'create';
+  document.getElementById('uploadMode').style.display  = isCreate ? 'none' : 'flex';
+  document.getElementById('uploadMode').style.flexDirection = 'column';
+  document.getElementById('createMode').style.display = isCreate ? 'flex' : 'none';
+  document.getElementById('modeUpload').style.background = isCreate ? 'transparent' : 'var(--accent)';
+  document.getElementById('modeUpload').style.color    = isCreate ? 'var(--muted)' : '#fff';
+  document.getElementById('modeCreate').style.background = isCreate ? 'var(--blue)' : 'transparent';
+  document.getElementById('modeCreate').style.color    = isCreate ? '#fff' : 'var(--muted)';
+  if (isCreate) initCFDates();
+}
+
+// ============================================================
+// CREATE FORM — LINES
+// ============================================================
+let cfLineCount = 0;
+
+function initCFDates() {
+  const today = new Date().toISOString().split('T')[0];
+  const due   = new Date(Date.now() + 30*86400000).toISOString().split('T')[0];
+  if (!document.getElementById('cf-issueDate').value) document.getElementById('cf-issueDate').value = today;
+  if (!document.getElementById('cf-dueDate').value)   document.getElementById('cf-dueDate').value   = due;
+  if (cfLineCount === 0) addCFLine();
+}
+
+function addCFLine(data) {
+  cfLineCount++;
+  const id = cfLineCount;
+  const c  = document.getElementById('cf-linesContainer');
+  const d  = document.createElement('div');
+  d.id     = 'cf-line-' + id;
+  d.style.cssText = 'background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px;';
+  d.innerHTML =
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">' +
+      '<span style="font-size:10px;color:var(--accent);font-family:monospace;font-weight:700;">RAD ' + id + '</span>' +
+      '<button onclick="removeCFLine(' + id + ')" style="font-size:10px;padding:1px 6px;background:transparent;color:var(--danger);border:1px solid var(--danger);border-radius:3px;cursor:pointer;font-family:inherit;">✕</button>' +
+    '</div>' +
+    '<input type="text" id="cf-desc-' + id + '" class="mini-input" placeholder="Beskrivning*" value="' + (data&&data.desc||'') + '" oninput="recalcCF()" style="margin-bottom:5px;">' +
+    '<div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:4px;margin-bottom:5px;">' +
+      '<input type="text" id="cf-artno-' + id + '" class="mini-input" placeholder="Artikelnr" value="' + (data&&data.artNo||'') + '">' +
+      '<select id="cf-unit-' + id + '" class="mini-input" style="font-family:inherit;">' +
+        '<option value="HUR">tim</option><option value="EA">st</option>' +
+        '<option value="DAY">dag</option><option value="KGM">kg</option><option value="MTR">m</option>' +
+      '</select>' +
+      '<input type="number" id="cf-qty-' + id + '" class="mini-input" placeholder="Antal" value="' + (data&&data.qty||'1') + '" step="0.01" oninput="recalcCF()">' +
+    '</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">' +
+      '<input type="number" id="cf-price-' + id + '" class="mini-input" placeholder="À-pris exkl moms" value="' + (data&&data.price||'') + '" step="0.01" oninput="recalcCF()">' +
+      '<input type="text" id="cf-linetotal-' + id + '" class="mini-input" readonly style="background:rgba(35,134,54,0.1);color:#7ee787;" placeholder="0,00">' +
+    '</div>';
+  c.appendChild(d);
+  recalcCF();
+}
+
+function removeCFLine(id) {
+  const el = document.getElementById('cf-line-' + id);
+  if (el) el.remove();
+  recalcCF();
+}
+
+function recalcCF() {
+  let net = 0;
+  for (let i = 1; i <= cfLineCount; i++) {
+    const qEl = document.getElementById('cf-qty-' + i);
+    const pEl = document.getElementById('cf-price-' + i);
+    const tEl = document.getElementById('cf-linetotal-' + i);
+    if (!qEl) continue;
+    const lineTotal = (parseFloat(qEl.value)||0) * (parseFloat(pEl.value)||0);
+    if (tEl) tEl.value = lineTotal.toLocaleString('sv-SE',{minimumFractionDigits:2,maximumFractionDigits:2});
+    net += lineTotal;
+  }
+  const vatPct = parseFloat(document.getElementById('cf-vatPercent').value) || 0;
+  const vat    = net * vatPct / 100;
+  const gross  = net + vat;
+  const doRound = document.getElementById('cf-rounding').checked;
+  const rounded = doRound ? Math.floor(gross) : gross;
+  const rounding = doRound ? rounded - gross : 0;
+
+  document.getElementById('cf-sumNet').textContent    = net.toLocaleString('sv-SE',{minimumFractionDigits:2,maximumFractionDigits:2});
+  document.getElementById('cf-sumVat').textContent    = vat.toLocaleString('sv-SE',{minimumFractionDigits:2,maximumFractionDigits:2});
+  document.getElementById('cf-sumVatPct').textContent = vatPct;
+  document.getElementById('cf-sumTotal').textContent  = rounded.toLocaleString('sv-SE',{minimumFractionDigits:2,maximumFractionDigits:2});
+  document.getElementById('cf-roundingRow').style.display = doRound ? 'flex' : 'none';
+  document.getElementById('cf-sumRounding').textContent = rounding.toLocaleString('sv-SE',{minimumFractionDigits:2,maximumFractionDigits:2});
+  scheduleLivePreview();
+}
+
+function updateCFVat() {
+  const cat = document.getElementById('cf-vatCategory').value;
+  if (['AE','K','G','E','Z'].includes(cat)) {
+    document.getElementById('cf-vatPercent').value = '0';
+  }
+  recalcCF();
+}
+
+// ============================================================
+// GET FORM DATA
+// ============================================================
+function getCFData() {
+  const v = id => document.getElementById(id)?.value || '';
+  const lines = [];
+  for (let i = 1; i <= cfLineCount; i++) {
+    const desc = document.getElementById('cf-desc-' + i)?.value?.trim();
+    if (!desc) continue;
+    lines.push({
+      id:    lines.length + 1,
+      desc,
+      artNo: document.getElementById('cf-artno-' + i)?.value || '',
+      qty:   parseFloat(document.getElementById('cf-qty-' + i)?.value) || 1,
+      unit:  document.getElementById('cf-unit-' + i)?.value || 'EA',
+      price: parseFloat(document.getElementById('cf-price-' + i)?.value) || 0,
+    });
+  }
+  const net    = lines.reduce((s,l) => s + l.qty * l.price, 0);
+  const vatPct = parseFloat(v('cf-vatPercent')) || 0;
+  const vat    = net * vatPct / 100;
+  const gross  = net + vat;
+  const doRound = document.getElementById('cf-rounding').checked;
+  const payable = doRound ? Math.floor(gross) : gross;
+  const rounding = doRound ? payable - gross : 0;
+
+  return {
+    invoiceId:    v('cf-invoiceId') || 'INV-001',
+    invoiceType:  v('cf-invoiceType') || '380',
+    issueDate:    v('cf-issueDate'),
+    dueDate:      v('cf-dueDate'),
+    currency:     v('cf-currency') || 'SEK',
+    paymentRef:   v('cf-paymentRef'),
+    paymentTerms: v('cf-paymentTerms'),
+    note:         v('cf-note'),
+    seller: {
+      name:    v('cf-sellerName'),
+      orgNo:   v('cf-sellerOrgNo'),
+      vat:     v('cf-sellerVat'),
+      street:  v('cf-sellerStreet'),
+      zip:     v('cf-sellerZip'),
+      city:    v('cf-sellerCity'),
+      country: v('cf-sellerCountry') || 'SE',
+      bank:    v('cf-sellerBank'),
+      email:   v('cf-sellerEmail'),
+    },
+    buyer: {
+      name:    v('cf-buyerName'),
+      orgNo:   v('cf-buyerOrgNo'),
+      vat:     v('cf-buyerVat'),
+      street:  v('cf-buyerStreet'),
+      zip:     v('cf-buyerZip'),
+      city:    v('cf-buyerCity'),
+      country: v('cf-buyerCountry') || 'SE',
+      ref:     v('cf-buyerRef'),
+    },
+    vat: { category: v('cf-vatCategory') || 'S', percent: String(vatPct), exemptReason: '' },
+    totals: { net, vatAmount: vat, gross: payable, rounding: rounding || 0 },
+    rounding,
+    lines,
+  };
+}
+
+// ============================================================
+// GENERATE PDF FROM FORM (using jsPDF via CDN)
+// ============================================================
+async function generateFromForm(alsoConvert) {
+  const d = getCFData();
+
+  // Validate required fields
+  const missing = [];
+  if (!d.invoiceId)       missing.push('Fakturanummer');
+  if (!d.seller.name)     missing.push('Säljarens namn');
+  if (!d.buyer.name)      missing.push('Köparens namn');
+  if (!d.buyer.ref)       missing.push('Köparreferens (BT-10)');
+  if (d.lines.length === 0) missing.push('Minst en fakturarad');
+  if (missing.length) { alert('Saknade fält:\n• ' + missing.join('\n• ')); return; }
+
+  // Load jsPDF if not already loaded
+  if (!window.jspdf) {
+    await new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+      s.onload = res; s.onerror = rej;
+      document.head.appendChild(s);
+    });
+  }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+  const W = 210, M = 20, CW = W - 2*M;
+  const curr = d.currency;
+  const n2 = n => parseFloat(n||0).toLocaleString('sv-SE',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+  // Colors
+  const ACCENT = [37, 99, 235];
+  const MUTED  = [120,120,120];
+  const DARK   = [20, 20, 40];
+
+  let y = 18;
+
+  // Header bar
+  doc.setFillColor(...ACCENT);
+  doc.rect(0, 0, W, 12, 'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(9); doc.setFont('helvetica','normal');
+  doc.text('FAKTURA · PEPPOL BIS Billing 3.0', M, 8);
+  doc.text(d.invoiceId, W - M, 8, {align:'right'});
+
+  y = 22;
+
+  // Seller + Invoice details side by side
+  doc.setTextColor(...DARK);
+  doc.setFontSize(13); doc.setFont('helvetica','bold');
+  doc.text(d.seller.name || '', M, y); y += 5;
+  doc.setFontSize(8); doc.setFont('helvetica','normal');
+  doc.setTextColor(...MUTED);
+  if (d.seller.street) { doc.text(d.seller.street, M, y); y += 4; }
+  if (d.seller.zip || d.seller.city) { doc.text([d.seller.zip, d.seller.city].filter(Boolean).join(' '), M, y); y += 4; }
+  if (d.seller.orgNo) { doc.text('Org.nr: ' + d.seller.orgNo, M, y); y += 4; }
+  if (d.seller.vat)   { doc.text('Moms: '  + d.seller.vat,   M, y); y += 4; }
+  if (d.seller.bank)  { doc.text('Bankgiro: ' + d.seller.bank, M, y); y += 4; }
+
+  // Invoice meta right side
+  const rx = W - M;
+  let ry = 22;
+  doc.setTextColor(...MUTED); doc.setFontSize(7);
+  const meta = [
+    ['Fakturanummer:', d.invoiceId],
+    ['Fakturadatum:', d.issueDate],
+    ['Förfallodatum:', d.dueDate],
+    ['Valuta:', curr],
+  ];
+  if (d.paymentRef) meta.push(['OCR:', d.paymentRef]);
+  if (d.paymentTerms) meta.push(['Villkor:', d.paymentTerms]);
+  meta.forEach(([k,v]) => {
+    if (!v) return;
+    doc.setFont('helvetica','normal'); doc.text(k, rx - 50, ry);
+    doc.setFont('helvetica','bold');   doc.text(v, rx, ry, {align:'right'});
+    ry += 4.5;
+  });
+
+  y = Math.max(y, ry) + 6;
+
+  // Buyer box
+  doc.setFillColor(240,244,255);
+  doc.rect(M, y, CW, 22, 'F');
+  doc.setDrawColor(...ACCENT); doc.setLineWidth(0.3);
+  doc.rect(M, y, CW, 22);
+  doc.setTextColor(...DARK); doc.setFontSize(7); doc.setFont('helvetica','bold');
+  doc.text('FAKTURERAS TILL', M+3, y+4);
+  doc.setFontSize(9); doc.setFont('helvetica','bold');
+  doc.text(d.buyer.name || '', M+3, y+9);
+  doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
+  let buyerLine = y + 13;
+  if (d.buyer.street) { doc.text(d.buyer.street, M+3, buyerLine); buyerLine += 4; }
+  if (d.buyer.orgNo)  doc.text('Org.nr: ' + d.buyer.orgNo, M+3, buyerLine);
+  if (d.buyer.ref)    doc.text('Ref: ' + d.buyer.ref, rx, y+9, {align:'right'});
+
+  y += 28;
+
+  // Lines table header
+  doc.setFillColor(...ACCENT);
+  doc.rect(M, y, CW, 6, 'F');
+  doc.setTextColor(255,255,255); doc.setFontSize(7); doc.setFont('helvetica','bold');
+  doc.text('Beskrivning', M+2, y+4);
+  doc.text('Antal', M+85, y+4, {align:'right'});
+  doc.text('Enhet', M+100, y+4, {align:'right'});
+  doc.text('À-pris exkl. moms', M+135, y+4, {align:'right'});
+  doc.text('Belopp', W-M-2, y+4, {align:'right'});
+  y += 6;
+
+  // Lines
+  d.lines.forEach((l, i) => {
+    const bg = i % 2 === 0 ? [255,255,255] : [248,250,255];
+    doc.setFillColor(...bg); doc.rect(M, y, CW, 6, 'F');
+    doc.setTextColor(...DARK); doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
+    doc.text(l.desc.substring(0,45), M+2, y+4);
+    doc.text(String(l.qty), M+85, y+4, {align:'right'});
+    doc.text(l.unit, M+100, y+4, {align:'right'});
+    doc.text(n2(l.price), M+135, y+4, {align:'right'});
+    doc.text(n2(l.qty*l.price), W-M-2, y+4, {align:'right'});
+    y += 6;
+  });
+
+  y += 4;
+
+  // Totals
+  const totRows = [
+    ['Netto (exkl. moms):', n2(d.totals.net) + ' ' + curr],
+    ['Moms ' + d.vat.percent + '%:', n2(d.totals.vatAmount) + ' ' + curr],
+  ];
+  if (d.rounding) totRows.push(['Avrundning (BT-114):', n2(d.rounding) + ' ' + curr]);
+  totRows.forEach(([k,v]) => {
+    doc.setTextColor(...MUTED); doc.setFont('helvetica','normal'); doc.setFontSize(8);
+    doc.text(k, W-M-55, y); doc.text(v, W-M, y, {align:'right'});
+    y += 5;
+  });
+
+  // ATT BETALA
+  doc.setFillColor(...ACCENT);
+  doc.rect(W-M-85, y-1, 85, 9, 'F');
+  doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(9);
+  doc.text('ATT BETALA:', W-M-83, y+5);
+  doc.text(n2(d.totals.gross) + ' ' + curr, W-M-2, y+5, {align:'right'});
+  y += 14;
+
+  // Footer
+  doc.setDrawColor(200,200,200); doc.setLineWidth(0.3);
+  doc.line(M, y, W-M, y); y += 4;
+  doc.setTextColor(...MUTED); doc.setFontSize(7); doc.setFont('helvetica','normal');
+  doc.text('Genererad av PEPPOL PDF Converter · BIS Billing 3.0 · ' + new Date().toISOString().split('T')[0], M, y);
+
+  // Save PDF and get base64
+  const pdfBlob   = doc.output('blob');
+  const pdfBase64 = doc.output('datauristring').split(',')[1];
+
+  // Download PDF
+  const fname = d.invoiceId.replace(/[^a-zA-Z0-9-_]/g,'_') + '_faktura.pdf';
+  doc.save(fname);
+
+  addThinking('ok', '📄', `PDF genererad: <strong>${fname}</strong>`);
+
+  if (alsoConvert) {
+    // Set up state for PEPPOL conversion
+    uploadedBase64 = pdfBase64;
+    uploadedMime   = 'application/pdf';
+    currentFileName = fname;
+
+    // Build XML directly from form data — no AI needed!
+    addThinking('ai', '⚙️', 'Bygger PEPPOL BIS 3.0 XML direkt från formulärdata — ingen AI behövs...');
+    const xml = buildPeppolXML(d);
+    const activeProfile = getActiveProfile();
+    generatedXML = activeProfile ? applyProfileToXML(xml, activeProfile) : xml;
+
+    renderXML(xml);
+    setStage('upload', 'done');
+    setStage('vision', 'done');
+    setStage('extract', 'done');
+    setStage('build', 'done');
+    setStage('done', 'done');
+    setProgress(100);
+
+    markTabReady('fields');
+    markTabReady('xml');
+    markTabReady('rest');
+    markTabReady('validate');
+
+    // Save to history
+    saveToHistory({
+      invoiceId: d.invoiceId || '?',
+      seller:    d.seller?.name || '',
+      buyer:     d.buyer?.name || '',
+      date:      new Date().toLocaleString('sv-SE', {hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'}),
+      xmlSize:   (generatedXML.length/1024).toFixed(1) + ' KB',
+      xml:       generatedXML,
+    });
+
+    document.getElementById('downloadBtn').disabled = false;
+    document.getElementById('copyBtn').disabled = false;
+    document.getElementById('copyB64Btn').disabled = false;
+    document.getElementById('statusText').textContent = `✓ Klar · ${fname} → PEPPOL XML`;
+
+    const conf = 1.0; updateConfBadge(conf);
+
+    addThinking('ok', '✅', `<strong>PEPPOL XML klar!</strong> ${xml.length} tecken — <span style="cursor:pointer;color:var(--blue);text-decoration:underline;" onclick="switchOutDirect('xml')">Visa XML →</span>`);
+    addThinking('sys', '⚡', `<span style="cursor:pointer;color:var(--blue);text-decoration:underline;" onclick="switchOutDirect('rest')">Gå till REST / Postman →</span> för att exportera.`);
+
+    switchOutDirect('ai');
+  }
+}
+
+// ============================================================
 // SOAP ENVELOPE BUILDER
 // ============================================================
 function buildSOAPEnvelope(peppolXml) {
@@ -2354,7 +3805,7 @@ function buildSOAPEnvelope(peppolXml) {
   var nsUri   = document.getElementById('soapNsUri').value   || 'http://www.peppol.eu/schema/invoice/v1';
   var wrapper = document.getElementById('soapBodyWrapper').value || 'SubmitInvoiceRequest';
 
-  var envNs   = ver === '1.2'
+  var envNs = ver === '1.2'
     ? 'http://www.w3.org/2003/05/soap-envelope'
     : 'http://schemas.xmlsoap.org/soap/envelope/';
 
@@ -2364,10 +3815,8 @@ function buildSOAPEnvelope(peppolXml) {
     '  </soapenv:Header>\n';
 
   var innerXml = peppolXml
-    .replace(/<\?xml[^?]*\?>\n?/, '')  // remove XML declaration
-    .split('\n')
-    .map(function(l){ return '      ' + l; })
-    .join('\n');
+    .replace(/<\?xml[^?]*\?>\n?/, '')
+    .split('\n').map(function(l){ return '      ' + l; }).join('\n');
 
   return '<?xml version="1.0" encoding="UTF-8"?>\n' +
     '<soapenv:Envelope\n' +
@@ -2381,7 +3830,6 @@ function buildSOAPEnvelope(peppolXml) {
     '  </soapenv:Body>\n' +
     '</soapenv:Envelope>';
 }
-
 </script>
 </body>
 </html>
